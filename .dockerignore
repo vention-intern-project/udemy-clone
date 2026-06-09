@@ -1,0 +1,17 @@
+.git
+.gitignore
+.env
+.env.example
+.pytest_cache
+.ruff_cache
+.mypy_cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.venv
+.idea
+.DS_Store
+dist
+build
+htmlcov
