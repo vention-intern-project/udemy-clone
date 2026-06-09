@@ -74,8 +74,5 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_HOST=db
 POSTGRES_PORT=5432
-
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/udemy_clone
 ```
 
-`DATABASE_URL` uses the async PostgreSQL driver, so it should match the driver used by the app code.
