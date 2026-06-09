@@ -9,6 +9,9 @@ dependencies = [
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.1",
     "uvicorn>=0.49.0",
+    "sqlalchemy[asyncio]",
+    "alembic",
+    "asyncpg",
 ]
 
 [dependency-groups]
