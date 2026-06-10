@@ -17,4 +17,5 @@ class Settings:
             f"{self.POSTGRES_DB}"
         )
 
+
 settings = Settings()
