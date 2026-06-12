@@ -12,6 +12,7 @@ dependencies = [
     "sqlalchemy[asyncio]",
     "alembic",
     "asyncpg",
+    "python-jose>=3.5.0",
 ]
 
 [dependency-groups]

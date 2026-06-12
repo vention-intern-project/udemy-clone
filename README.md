@@ -75,4 +75,13 @@ POSTGRES_PASSWORD=postgres
 POSTGRES_HOST=db
 POSTGRES_PORT=5432
 ```
+From src run this cmd for running revision
+```
+uv run alembic revision --autogenerate -m "(text)"    
+```
+
+From src run this cmd for upgrading alembic to head
+```
+UV_CACHE_DIR=/private/tmp/uv-cache uv run alembic upgrade head   
+```
 
