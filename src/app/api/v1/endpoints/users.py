@@ -1,11 +1,11 @@
-from datetime import date, datetime
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
-from app.feature.user.models import UserRole
+from app.db.database import get_db
 from app.feature.user.schemas import UserProfileResponse
+from app.feature.user.service import get_user_profile
 
 router = APIRouter()
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -28,6 +28,7 @@ def _unauthorized() -> HTTPException:
 @router.get("/me", response_model=UserProfileResponse)
 async def read_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    session: AsyncSession = Depends(get_db),
 ):
     # Checking is existing bearer
     if credentials is None or credentials.scheme.lower() != "bearer":
@@ -41,15 +42,10 @@ async def read_current_user(
     except Exception:
         raise _unauthorized() from None
 
-    # Mock user profile
-    mock_user_profile = UserProfileResponse(
-        email="mmm@example.com",
-        name="Mmm",
-        surname="Dev",
-        role=UserRole.STUDENT,
-        birthday=date(1995, 5, 15),
-        phone_number="+1234567890",
-        created_at=datetime.now(),
-    )
+    # Getting user by passing db session and user_id
+    user = await get_user_profile(session, user_id)
 
-    return mock_user_profile
+    if user is None:
+        raise _unauthorized()
+
+    return user
