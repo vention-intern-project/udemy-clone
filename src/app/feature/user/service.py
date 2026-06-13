@@ -1,9 +1,8 @@
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.feature.user.models import User
+from app.feature.user.repository import get_user_by_id
 
 
 async def get_user_profile(session: AsyncSession, user_id: int) -> User | None:
-    result = await session.execute(select(User).where(User.id == user_id))
-    return result.scalar_one_or_none()
+    return await get_user_by_id(session, user_id)
