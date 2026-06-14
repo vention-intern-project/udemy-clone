@@ -64,5 +64,5 @@ async def register(
         user = await register_user(session, user_data)
         return user
 
-    except ValueError:
-        raise HTTPException(status_code=400, detail="User already exists")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail="User already exists") from err
