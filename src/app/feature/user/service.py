@@ -32,6 +32,6 @@ async def register_user(
     await session.commit()
     await session.refresh(user)
 
-    token = create_access_token(data={"sub": str(user.id)})
+    token = create_access_token(data={"id": str(user.id)})
 
     return {"user": user, "access_token": token, "token_type": "bearer"}
