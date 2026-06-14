@@ -25,7 +25,7 @@ def _unauthorized() -> HTTPException:
     )
 
 
-@router.get("/me", response_model=RegisterResponse)
+@router.get("/me", response_model=UserProfileResponse)
 async def read_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     session: AsyncSession = Depends(get_db),
@@ -51,7 +51,7 @@ async def read_current_user(
     return user
 
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/register", response_model=RegisterResponse)
 async def register(
     user_data: UserRegister,
     session: AsyncSession = Depends(get_db),
