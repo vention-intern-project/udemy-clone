@@ -51,7 +51,7 @@ async def read_current_user(
     return user
 
 
-@router.post("/register", response_model=RegisterResponse)
+@router.post("/signup", response_model=RegisterResponse)
 async def register(
     user_data: UserRegister,
     session: AsyncSession = Depends(get_db),
