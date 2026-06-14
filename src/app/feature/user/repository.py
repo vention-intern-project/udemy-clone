@@ -7,3 +7,8 @@ from app.feature.user.models import User
 async def get_user_by_id(session: AsyncSession, user_id: int) -> User | None:
     result = await session.execute(select(User).where(User.id == user_id))
     return result.scalar_one_or_none()
+
+
+async def get_user_by_email(session: AsyncSession, user_email: str) -> User | None:
+    result = await session.execute(select(User).where(User.email == user_email))
+    return result.scalar_one_or_none()

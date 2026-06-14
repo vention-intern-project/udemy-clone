@@ -15,3 +15,24 @@ class UserProfileResponse(BaseModel):
     birthday: date | None
     phone_number: str | None
     created_at: datetime
+
+
+class UserRegister(BaseModel):
+    email: str
+    name: str
+    surname: str
+    password: str
+    role: UserRole
+
+
+class UserResponse(BaseModel):
+    id: int
+    email: str
+
+    model_config = {"from_attributes": True}
+
+
+class RegisterResponse(BaseModel):
+    user: UserResponse
+    access_token: str
+    token_type: str
