@@ -16,6 +16,7 @@ class UserProfileResponse(BaseModel):
     phone_number: str | None
     created_at: datetime
 
+
 class UserRegister(BaseModel):
     email: str
     name: str
@@ -28,9 +29,7 @@ class UserResponse(BaseModel):
     id: int
     email: str
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class RegisterResponse(BaseModel):

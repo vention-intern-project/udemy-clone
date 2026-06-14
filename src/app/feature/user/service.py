@@ -1,9 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.feature.user.models import User
-from app.feature.user.repository import get_user_by_id, get_user_by_email
-from app.feature.user.schemas import UserRegister
 from app.core.security import create_access_token
+from app.feature.user.models import User
+from app.feature.user.repository import get_user_by_email, get_user_by_id
+from app.feature.user.schemas import UserRegister
 
 
 async def get_user_profile(session: AsyncSession, user_id: int) -> User | None:
@@ -18,9 +18,7 @@ async def register_user(
     existing_user = await get_user_by_email(session, user_data.email)
 
     if existing_user:
-        raise ValueError(
-            "User already exists"
-        )
+        raise ValueError("User already exists")
 
     user = User(
         email=user_data.email,
@@ -34,12 +32,6 @@ async def register_user(
     await session.commit()
     await session.refresh(user)
 
-    token = create_access_token(
-        data={"sub": str(user.id)}
-    )
+    token = create_access_token(data={"sub": str(user.id)})
 
-    return {
-        "user": user,
-        "access_token": token,
-        "token_type": "bearer"
-    }
+    return {"user": user, "access_token": token, "token_type": "bearer"}

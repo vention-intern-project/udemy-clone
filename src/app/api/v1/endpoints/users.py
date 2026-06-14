@@ -4,7 +4,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
 from app.db.database import get_db
-from app.feature.user.schemas import UserProfileResponse, UserRegister, UserResponse, RegisterResponse
+from app.feature.user.schemas import (
+    RegisterResponse,
+    UserProfileResponse,
+    UserRegister,
+)
 from app.feature.user.service import get_user_profile, register_user
 
 router = APIRouter()
@@ -57,14 +61,8 @@ async def register(
     session: AsyncSession = Depends(get_db),
 ):
     try:
-        user = await register_user(
-            session,
-            user_data
-        )
+        user = await register_user(session, user_data)
         return user
 
     except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail="User already exists"
-        )
+        raise HTTPException(status_code=400, detail="User already exists")
