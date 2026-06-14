@@ -31,3 +31,9 @@ class UserResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+
+class RegisterResponse(BaseModel):
+    user: UserResponse
+    access_token: str
+    token_type: str

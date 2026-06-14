@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
 from app.db.database import get_db
-from app.feature.user.schemas import UserProfileResponse, UserRegister, UserResponse
+from app.feature.user.schemas import UserProfileResponse, UserRegister, UserResponse, RegisterResponse
 from app.feature.user.service import get_user_profile, register_user
 
 router = APIRouter()
@@ -25,7 +25,7 @@ def _unauthorized() -> HTTPException:
     )
 
 
-@router.get("/me", response_model=UserProfileResponse)
+@router.get("/me", response_model=RegisterResponse)
 async def read_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     session: AsyncSession = Depends(get_db),
