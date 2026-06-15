@@ -5,7 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import decode_token
 from app.db.database import get_db
 from app.feature.user.schemas import (
+    LoginResponse,
     RegisterResponse,
+    UserLogin,
     UserProfileResponse,
     UserRegister,
 )
@@ -66,3 +68,11 @@ async def register(
 
     except ValueError as err:
         raise HTTPException(status_code=400, detail="User already exists") from err
+
+
+@router.post("/login")
+async def login(
+    user_data: UserLogin,
+):
+    print(user_data)
+    return LoginResponse(access_token="test-token")
