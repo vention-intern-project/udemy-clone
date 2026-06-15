@@ -5,13 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import decode_token
 from app.db.database import get_db
 from app.feature.user.schemas import (
-    LoginResponse,
     RegisterResponse,
     UserLogin,
     UserProfileResponse,
     UserRegister,
 )
-from app.feature.user.service import get_user_profile, register_user
+from app.feature.user.service import get_user_profile, login_user, register_user
 
 router = APIRouter()
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -73,6 +72,12 @@ async def register(
 @router.post("/login")
 async def login(
     user_data: UserLogin,
+    session: AsyncSession = Depends(get_db),
 ):
-    print(user_data)
-    return LoginResponse(access_token="test-token")
+    try:
+        token = await login_user(session, user_data)
+        return {"access_token": token}
+    except ValueError:
+        raise HTTPException(
+            status_code=400, detail="Invalid email or password"
+        ) from None
