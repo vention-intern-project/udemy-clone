@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import create_access_token, hash_password
+from app.core.security import create_access_token, hash_password, verify_password
 from app.feature.user.models import User
 from app.feature.user.repository import get_user_by_email, get_user_by_id
 from app.feature.user.schemas import UserLogin, UserRegister
@@ -42,7 +42,7 @@ async def register_user(
 async def login_user(session: AsyncSession, user_data: UserLogin) -> str:
     user = await get_user_by_email(session, user_data.email)
 
-    if user is None or user.password != user_data.password:
+    if user is None or not verify_password(user_data.password, user.password):
         raise ValueError("Invalid email or password")
 
     return create_access_token(data={"id": str(user.id)})
