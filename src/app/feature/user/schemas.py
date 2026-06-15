@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 from app.feature.user.models import UserRole
 
@@ -36,3 +36,12 @@ class RegisterResponse(BaseModel):
     user: UserResponse
     access_token: str
     token_type: str
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class LoginResponse(BaseModel):
+    access_token: str
