@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import create_access_token
+from app.core.security import create_access_token, hash_password
 from app.feature.user.models import User
 from app.feature.user.repository import get_user_by_email, get_user_by_id
 from app.feature.user.schemas import UserLogin, UserRegister
@@ -20,11 +20,13 @@ async def register_user(
     if existing_user:
         raise ValueError("User already exists")
 
+    hashed_password = hash_password(user_data.password)
+
     user = User(
         email=user_data.email,
         name=user_data.name,
         surname=user_data.surname,
-        password=user_data.password,
+        password=hashed_password,
         role=user_data.role,
     )
 
