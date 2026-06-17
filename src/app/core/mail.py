@@ -2,7 +2,6 @@ from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 
 from app.core.config import settings
 
-
 conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
     MAIL_PASSWORD=settings.MAIL_PASSWORD,
@@ -14,16 +13,14 @@ conf = ConnectionConfig(
     USE_CREDENTIALS=True,
 )
 
+
 class EmailService:
     @staticmethod
     async def send_password_reset_email(
         email: str,
         reset_token: str,
     ) -> None:
-        reset_link = (
-            f"{settings.FRONTEND_URL}"
-            f"/reset-password?token={reset_token}"
-        )
+        reset_link = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
         message = MessageSchema(
             subject="Password Reset",
             recipients=[email],

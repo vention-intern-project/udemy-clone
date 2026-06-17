@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.feature.user.models import User, PasswordResetToken
+from app.feature.user.models import PasswordResetToken, User
 
 
 async def get_user_by_id(session: AsyncSession, user_id: int) -> User | None:
@@ -14,7 +14,9 @@ async def get_user_by_email(session: AsyncSession, user_email: str) -> User | No
     return result.scalar_one_or_none()
 
 
-async def create_reset_token(session: AsyncSession, user_id: int, token: str, expires_at) -> PasswordResetToken | None:
+async def create_reset_token(
+    session: AsyncSession, user_id: int, token: str, expires_at
+) -> PasswordResetToken | None:
     reset_token = PasswordResetToken(
         user_id=user_id,
         token=token,
@@ -27,11 +29,18 @@ async def create_reset_token(session: AsyncSession, user_id: int, token: str, ex
     return reset_token
 
 
-async def get_by_reset_token(session: AsyncSession, token: str) -> PasswordResetToken | None:
-    result = await session.execute(select(PasswordResetToken).where(PasswordResetToken.token == token))
+async def get_by_reset_token(
+    session: AsyncSession, token: str
+) -> PasswordResetToken | None:
+    result = await session.execute(
+        select(PasswordResetToken).where(PasswordResetToken.token == token)
+    )
 
     return result.scalar_one_or_none()
 
-async def mark_reset_token_as_used(session: AsyncSession, reset_token: PasswordResetToken) -> None:
+
+async def mark_reset_token_as_used(
+    session: AsyncSession, reset_token: PasswordResetToken
+) -> None:
     reset_token.used = True
     await session.commit()

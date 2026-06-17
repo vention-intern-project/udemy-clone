@@ -1,8 +1,8 @@
+import secrets
 from datetime import UTC, datetime, timedelta
 
 from jose import JWTError, jwt
 from pwdlib import PasswordHash
-import secrets
 
 from app.core.config import settings
 

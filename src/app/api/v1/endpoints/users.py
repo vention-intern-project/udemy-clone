@@ -5,14 +5,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import decode_token
 from app.db.database import get_db
 from app.feature.user.schemas import (
+    ForgotPasswordRequest,
     RegisterResponse,
+    ResetPasswordRequest,
     UserLogin,
     UserProfileResponse,
     UserRegister,
-    ResetPasswordRequest,
-    ForgotPasswordRequest
 )
-from app.feature.user.service import get_user_profile, login_user, register_user, forgot_password, reset_password
+from app.feature.user.service import (
+    forgot_password,
+    get_user_profile,
+    login_user,
+    register_user,
+    reset_password,
+)
 
 router = APIRouter()
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -92,23 +98,18 @@ async def forgot_user_password(
 ):
     await forgot_password(session, request)
 
-    return {
-        "message":
-        "If account exists, reset email sent"
-    }
+    return {"message": "If account exists, reset email sent"}
 
 
 @router.post("/reset-password")
 async def reset_user_password(
-    request: ResetPasswordRequest,
-    session: AsyncSession = Depends(get_db)
+    request: ResetPasswordRequest, session: AsyncSession = Depends(get_db)
 ):
     try:
         await reset_password(session, request)
 
-        return {
-            "message":
-            "Password reset successful"
-        }
+        return {"message": "Password reset successful"}
     except ValueError as err:
-        raise HTTPException(status_code=400, detail="Token is expired or user not found") from err
+        raise HTTPException(
+            status_code=400, detail="Token is expired or user not found"
+        ) from err

@@ -1,12 +1,28 @@
-from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta
 
-from app.core.security import create_access_token, hash_password, verify_password, generate_reset_token
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.mail import EmailService
+from app.core.security import (
+    create_access_token,
+    generate_reset_token,
+    hash_password,
+    verify_password,
+)
 from app.feature.user.models import User
-from app.feature.user.repository import (get_user_by_email, get_user_by_id, create_reset_token, get_by_reset_token,
-                                         mark_reset_token_as_used)
-from app.feature.user.schemas import UserLogin, UserRegister, ForgotPasswordRequest, ResetPasswordRequest
+from app.feature.user.repository import (
+    create_reset_token,
+    get_by_reset_token,
+    get_user_by_email,
+    get_user_by_id,
+    mark_reset_token_as_used,
+)
+from app.feature.user.schemas import (
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    UserLogin,
+    UserRegister,
+)
 
 
 async def get_user_profile(session: AsyncSession, user_id: int) -> User | None:
@@ -60,10 +76,7 @@ async def forgot_password(session: AsyncSession, email_data: ForgotPasswordReque
     if user:
         token = generate_reset_token()
 
-        expires_at = (
-                datetime.utcnow()
-                + timedelta(minutes=15)
-        )
+        expires_at = datetime.utcnow() + timedelta(minutes=15)
 
         await create_reset_token(session, user.id, token, expires_at)
 
@@ -72,20 +85,18 @@ async def forgot_password(session: AsyncSession, email_data: ForgotPasswordReque
             token,
         )
 
-    return {
-        "message": (
-            "If the email exists, a reset link has been sent."
-        )
-    }
+    return {"message": ("If the email exists, a reset link has been sent.")}
 
 
 async def reset_password(session: AsyncSession, data: ResetPasswordRequest):
     reset_token = await get_by_reset_token(session, data.token)
 
-    if not reset_token or reset_token.used or reset_token.expires_at < datetime.utcnow():
-        raise ValueError(
-            "Invalid or expired token"
-        )
+    if (
+        not reset_token
+        or reset_token.used
+        or reset_token.expires_at < datetime.utcnow()
+    ):
+        raise ValueError("Invalid or expired token")
 
     user = await get_user_by_id(
         session,
@@ -103,6 +114,4 @@ async def reset_password(session: AsyncSession, data: ResetPasswordRequest):
 
     await session.commit()
 
-    return {
-        "message": "Password successfully updated"
-    }
+    return {"message": "Password successfully updated"}
