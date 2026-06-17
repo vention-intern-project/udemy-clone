@@ -86,7 +86,7 @@ async def login(
 
 
 @router.post("/forgot-password")
-async def forgot_password(
+async def forgot_user_password(
     request: ForgotPasswordRequest,
     session: AsyncSession = Depends(get_db),
 ):
@@ -99,7 +99,7 @@ async def forgot_password(
 
 
 @router.post("/reset-password")
-async def reset_password(
+async def reset_user_password(
     request: ResetPasswordRequest,
     session: AsyncSession = Depends(get_db)
 ):
