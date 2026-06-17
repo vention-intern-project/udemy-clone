@@ -45,3 +45,12 @@ class UserLogin(BaseModel):
 
 class LoginResponse(BaseModel):
     access_token: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
