@@ -2,10 +2,15 @@ from datetime import UTC, datetime, timedelta
 
 from jose import JWTError, jwt
 from pwdlib import PasswordHash
+import secrets
 
 from app.core.config import settings
 
 password_hash = PasswordHash.recommended()
+
+
+def generate_reset_token() -> str:
+    return secrets.token_urlsafe(32)
 
 
 def hash_password(password: str) -> str:
