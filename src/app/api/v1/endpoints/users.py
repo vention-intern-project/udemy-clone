@@ -9,8 +9,10 @@ from app.feature.user.schemas import (
     UserLogin,
     UserProfileResponse,
     UserRegister,
+    ResetPasswordRequest,
+    ForgotPasswordRequest
 )
-from app.feature.user.service import get_user_profile, login_user, register_user
+from app.feature.user.service import get_user_profile, login_user, register_user, forgot_password, reset_password
 
 router = APIRouter()
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -81,3 +83,32 @@ async def login(
         raise HTTPException(
             status_code=400, detail="Invalid email or password"
         ) from None
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    session: AsyncSession = Depends(get_db),
+):
+    await forgot_password(session, request)
+
+    return {
+        "message":
+        "If account exists, reset email sent"
+    }
+
+
+@router.post("/reset-password")
+async def reset_password(
+    request: ResetPasswordRequest,
+    session: AsyncSession = Depends(get_db)
+):
+    try:
+        await reset_password(session, request)
+
+        return {
+            "message":
+            "Password reset successful"
+        }
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail="Token is expired or user not found") from err
