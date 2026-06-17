@@ -1,7 +1,8 @@
 import enum
 from datetime import date, datetime
+from uuid import uuid4
 
-from sqlalchemy import Date, DateTime, Enum, String, func
+from sqlalchemy import Date, DateTime, Enum, String, func, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -30,4 +31,36 @@ class User(Base):
     phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[str] = mapped_column(
+        String,
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False,
+    )
+
+    token: Mapped[str] = mapped_column(
+        String(255),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+    )
+
+    used: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
     )
