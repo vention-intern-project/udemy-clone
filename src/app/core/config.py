@@ -15,6 +15,15 @@ class Settings:
     ALGORITHM = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_HOURS = int(os.getenv("ACCESS_TOKEN_EXPIRE_HOURS", "1"))
 
+    MAIL_USERNAME = os.getenv("MAIL_USERNAME", "")
+    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "")
+    MAIL_FROM = os.getenv("MAIL_FROM", "")
+    MAIL_PORT = os.getenv("MAIL_PORT", "587")
+    MAIL_SERVER = os.getenv("MAIL_SERVER", "")
+    MAIL_STARTTLS = os.getenv("MAIL_STARTTLS", "")
+    MAIL_SSL_TLS = os.getenv("MAIL_SSL_TLS", "")
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "")
+
     @property
     def DATABASE_URL(self):
         return (
