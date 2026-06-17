@@ -18,8 +18,12 @@ class EmailService:
     @staticmethod
     async def send_password_reset_email(
         email: str,
-        reset_link: str,
+        reset_token: str,
     ) -> None:
+        reset_link = (
+            f"{settings.FRONTEND_URL}"
+            f"/reset-password?token={reset_token}"
+        )
         message = MessageSchema(
             subject="Password Reset",
             recipients=[email],
