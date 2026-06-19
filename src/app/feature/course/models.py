@@ -13,7 +13,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
@@ -63,6 +63,11 @@ class Course(Base):
         nullable=False,
     )
 
+    lessons: Mapped[list["Lesson"]] = relationship(
+        back_populates="course",
+        cascade="all, delete-orphan",
+    )
+
 
 class Lesson(Base):
     __tablename__ = "lessons"
@@ -97,3 +102,5 @@ class Lesson(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+    course: Mapped["Course"] = relationship(back_populates="lessons")
