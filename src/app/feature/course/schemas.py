@@ -46,3 +46,10 @@ class LessonResponse(BaseModel):
     is_published: bool
     created_at: datetime
     updated_at: datetime
+
+
+class CourseCreateRequest(BaseModel):
+    title: str
+    description: str | None = None
+    price: Decimal
+    currency: str
