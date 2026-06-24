@@ -62,7 +62,7 @@ async def creating_course(
 
 
 @router.post("/{course_id}/lessons", response_model=LessonResponse)
-async def creating_course(
+async def creating_lesson(
     course_id: int,
     payload: LessonCreateRequest,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
