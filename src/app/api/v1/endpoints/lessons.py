@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import decode_token
 from app.db.database import get_db
 from app.feature.course.schemas import LessonResponse, LessonUpdateRequest
-from app.feature.course.service import update_lesson
+from app.feature.course.service import get_lesson_detail, update_lesson
 
 router = APIRouter(prefix="/lessons", tags=["lessons"])
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -23,6 +23,22 @@ def _unauthorized() -> HTTPException:
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
     )
+
+
+@router.get("/{lesson_id}", response_model=LessonResponse)
+async def get_lesson(
+    lesson_id: int,
+    session: AsyncSession = Depends(get_db),
+):
+    lesson = await get_lesson_detail(session, lesson_id)
+
+    if lesson is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lesson not found",
+        )
+
+    return lesson
 
 
 @router.patch("/{lesson_id}", response_model=LessonResponse)
