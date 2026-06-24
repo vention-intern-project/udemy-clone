@@ -2,8 +2,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.feature.course.models import Course, Lesson
 from app.feature.course.repository import get_course_by_id, get_lesson_by_id
-from app.feature.course.schemas import (CourseUpdateRequest, LessonUpdateRequest, CourseCreateRequest,
-                                        LessonCreateRequest)
+from app.feature.course.schemas import (
+    CourseCreateRequest,
+    CourseUpdateRequest,
+    LessonCreateRequest,
+    LessonUpdateRequest,
+)
 
 
 async def create_course(
@@ -25,6 +29,7 @@ async def create_course(
 
     return course
 
+
 async def create_lesson(
     session: AsyncSession,
     course_id: int,
@@ -37,7 +42,9 @@ async def create_lesson(
         raise ValueError("Course not found")
 
     if course.instructor_id != user_id:
-        raise PermissionError("You do not have permission to add classes to this course.")
+        raise PermissionError(
+            "You do not have permission to add classes to this course."
+        )
 
     lesson = Lesson(
         course_id=course_id,

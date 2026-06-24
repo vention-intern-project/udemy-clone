@@ -4,11 +4,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
 from app.db.database import get_db
-from app.feature.course.schemas import (CourseResponse, CourseUpdateRequest, CourseCreateRequest, LessonResponse,
-                                        LessonCreateRequest)
-from app.feature.course.service import update_course, create_course, create_lesson
-from app.feature.user.repository import get_user_by_id
+from app.feature.course.schemas import (
+    CourseCreateRequest,
+    CourseResponse,
+    CourseUpdateRequest,
+    LessonCreateRequest,
+    LessonResponse,
+)
+from app.feature.course.service import create_course, create_lesson, update_course
 from app.feature.user.models import UserRole
+from app.feature.user.repository import get_user_by_id
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 bearer_scheme = HTTPBearer(auto_error=False)
