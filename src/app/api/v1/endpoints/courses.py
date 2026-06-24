@@ -4,8 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
 from app.db.database import get_db
-from app.feature.course.schemas import CourseResponse, CourseUpdateRequest, CourseCreateRequest
-from app.feature.course.service import update_course, create_course
+from app.feature.course.schemas import (CourseResponse, CourseUpdateRequest, CourseCreateRequest, LessonResponse,
+                                        LessonCreateRequest)
+from app.feature.course.service import update_course, create_course, create_lesson
 from app.feature.user.repository import get_user_by_id
 from app.feature.user.models import UserRole
 
@@ -56,6 +57,39 @@ async def creating_course(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
         ) from None
+
+    return course
+
+
+@router.post("/{course_id}/lessons", response_model=LessonResponse)
+async def creating_course(
+    course_id: int,
+    payload: LessonCreateRequest,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    session: AsyncSession = Depends(get_db),
+):
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise _unauthorized()
+
+    try:
+        token_payload = decode_token(credentials.credentials)
+        user_id = _extract_user_id(token_payload)
+    except Exception:
+        raise _unauthorized() from None
+
+    try:
+        course = await create_lesson(session, course_id, user_id, payload)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    if course is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Course not found",
+        )
 
     return course
 
