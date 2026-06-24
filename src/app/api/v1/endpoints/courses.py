@@ -1,6 +1,3 @@
-from datetime import datetime
-from decimal import Decimal
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import decode_token
 from app.db.database import get_db
 from app.feature.course.schemas import CourseResponse, CourseUpdateRequest
+from app.feature.course.service import update_course
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -43,19 +41,18 @@ async def patch_course(
     except Exception:
         raise _unauthorized() from None
 
-    print(user_id)
-    print(payload)
+    try:
+        course = await update_course(session, course_id, user_id, payload)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
 
-    course_data = CourseResponse(
-        id=101,
-        instructor_id=42,
-        title="Introduction to Python and Pydantic",
-        description="Learn how to build robust data models and APIs "
-        "using modern Python tools.",
-        price=Decimal("49.99"),
-        currency="USD",
-        published_at=datetime(2026, 6, 23, 10, 0),
-        created_at=datetime(2026, 6, 1, 8, 30),
-        updated_at=datetime(2026, 6, 23, 10, 0),
-    )
-    return course_data
+    if course is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Course not found",
+        )
+
+    return course
