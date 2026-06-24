@@ -3,6 +3,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.feature.course.models import LessonType
+
 
 class CourseUpdateRequest(BaseModel):
     title: str | None = Field(default=None, max_length=255)
@@ -21,5 +23,27 @@ class CourseResponse(BaseModel):
     price: Decimal
     currency: str
     published_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class LessonUpdateRequest(BaseModel):
+    title: str | None = Field(default=None, max_length=255)
+    lesson_type: LessonType | None = None
+    file_url: str | None = Field(default=None, max_length=512)
+    description: str | None = None
+    is_published: bool | None = None
+
+
+class LessonResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    course_id: int
+    title: str
+    lesson_type: LessonType
+    file_url: str | None
+    description: str | None
+    is_published: bool
     created_at: datetime
     updated_at: datetime
