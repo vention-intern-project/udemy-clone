@@ -78,17 +78,17 @@ async def creating_lesson(
         raise _unauthorized() from None
 
     try:
-        course = await create_lesson(session, course_id, user_id, payload)
+        lesson = await create_lesson(session, course_id, user_id, payload)
     except PermissionError as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
         ) from None
 
-    if course is None:
+    if lesson is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Course not found",
+            detail="Lesson not found",
         )
 
     return course
