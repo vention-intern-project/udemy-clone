@@ -1,7 +1,11 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.feature.course.models import Course, Lesson
-from app.feature.course.repository import get_course_by_id, get_lesson_by_id
+from app.feature.course.repository import (
+    get_course_by_id,
+    get_course_with_lessons,
+    get_lesson_by_id,
+)
 from app.feature.course.schemas import (
     CourseCreateRequest,
     CourseUpdateRequest,
@@ -61,6 +65,7 @@ async def create_lesson(
     return lesson
 
 
+
 async def update_course(
     session: AsyncSession,
     course_id: int,
@@ -116,3 +121,10 @@ async def get_lesson_detail(
     lesson_id: int,
 ) -> Lesson | None:
     return await get_lesson_by_id(session, lesson_id)
+
+
+async def get_course_detail(
+    session: AsyncSession,
+    course_id: int,
+) -> Course | None:
+    return await get_course_with_lessons(session, course_id)
