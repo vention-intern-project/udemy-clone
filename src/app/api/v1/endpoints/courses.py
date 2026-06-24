@@ -27,7 +27,7 @@ def _unauthorized() -> HTTPException:
     )
 
 
-@router.post("/", response_model=CourseResponse)
+@router.post("", response_model=CourseResponse)
 async def creating_course(
     payload: CourseCreateRequest,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
