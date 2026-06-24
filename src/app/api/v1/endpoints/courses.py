@@ -91,7 +91,7 @@ async def creating_lesson(
             detail="Lesson not found",
         )
 
-    return course
+    return lesson
 
 
 @router.patch("/{course_id}", response_model=CourseResponse)
