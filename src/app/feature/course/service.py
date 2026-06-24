@@ -109,3 +109,10 @@ async def update_lesson(
     await session.commit()
     await session.refresh(lesson)
     return lesson
+
+
+async def get_lesson_detail(
+    session: AsyncSession,
+    lesson_id: int,
+) -> Lesson | None:
+    return await get_lesson_by_id(session, lesson_id)
