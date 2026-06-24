@@ -30,7 +30,6 @@ class CourseResponse(BaseModel):
 class LessonUpdateRequest(BaseModel):
     title: str | None = Field(default=None, max_length=255)
     lesson_type: LessonType | None = None
-    file_url: str | None = Field(default=None, max_length=512)
     description: str | None = None
     is_published: bool | None = None
 
