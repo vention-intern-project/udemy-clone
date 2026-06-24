@@ -2,7 +2,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.feature.course.models import Course, Lesson
 from app.feature.course.repository import get_course_by_id, get_lesson_by_id
-from app.feature.course.schemas import CourseUpdateRequest, LessonUpdateRequest
+from app.feature.course.schemas import CourseUpdateRequest, LessonUpdateRequest, CourseCreateRequest
+
+
+async def create_course(
+    session: AsyncSession,
+    user_id: int,
+    data: CourseCreateRequest,
+) -> Course:
+    course = Course(
+        instructor_id=user_id,
+        title=data.title,
+        description=data.description,
+        price=data.price,
+        currency=data.currency,
+    )
+
+    session.add(course)
+    await session.commit()
+    await session.refresh(course)
+
+    return course
 
 
 async def update_course(
