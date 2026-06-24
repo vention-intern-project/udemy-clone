@@ -84,6 +84,11 @@ async def creating_lesson(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
         ) from None
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
 
     if lesson is None:
         raise HTTPException(
