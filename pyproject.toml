@@ -16,6 +16,7 @@ dependencies = [
     "python-jose>=3.5.0",
     "pwdlib[argon2]>=0.3.0",
     "fastapi-mail>=1.6.4",
+    "factory-boy>=3.3.3",
 ]
 
 [dependency-groups]
