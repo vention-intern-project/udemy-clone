@@ -140,6 +140,11 @@ async def deleting_lesson(
     if not lesson:
         raise ValueError("Lesson not found")
 
+    if lesson.course.id != course_id:
+        raise PermissionError(
+            "This lesson does not belong to this course."
+        )
+
     if lesson.course.instructor_id != user_id:
         raise PermissionError(
             "You do not have permission to delete the classes of this course."
