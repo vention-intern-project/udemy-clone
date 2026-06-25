@@ -7,7 +7,6 @@ from app.api.v1.dependencies import get_current_user_id
 from app.api.v1.endpoints import courses
 from app.db.database import get_db
 from app.main import app
-
 from tests.unit.factories import CourseFactory, LessonFactory, UserFactory
 
 
