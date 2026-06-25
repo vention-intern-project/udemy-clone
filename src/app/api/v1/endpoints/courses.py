@@ -22,21 +22,6 @@ from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
 
 router = APIRouter(prefix="/courses", tags=["courses"])
-bearer_scheme = HTTPBearer(auto_error=False)
-
-
-def _extract_user_id(payload: dict) -> int:
-    value = payload.get("id")
-    if value is not None:
-        return int(value)
-    raise ValueError("Token payload does not contain a user identifier")
-
-
-def _unauthorized() -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-    )
 
 
 @router.post("", response_model=CourseResponse)
