@@ -61,6 +61,7 @@ class LessonCreateRequest(BaseModel):
     description: str | None = None
     is_published: bool | None = None
 
+
 class InstructorResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

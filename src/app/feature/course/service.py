@@ -65,7 +65,6 @@ async def create_lesson(
     return lesson
 
 
-
 async def update_course(
     session: AsyncSession,
     course_id: int,
