@@ -115,7 +115,7 @@ async def deleting_course(
         session: AsyncSession,
         course_id: int,
         user_id: int,
-) -> None:
+) -> str:
     course = await get_course_by_id(session, course_id)
 
     if not course:
@@ -128,13 +128,15 @@ async def deleting_course(
 
     await delete_course(session, course)
 
+    return "Course deleted successfully"
+
 
 async def deleting_lesson(
         session: AsyncSession,
         course_id: int,
         lesson_id: int,
         user_id: int,
-) -> None:
+) -> str:
     lesson = await get_lesson_by_id(session, lesson_id)
 
     if not lesson:
@@ -151,3 +153,5 @@ async def deleting_lesson(
         )
 
     await delete_lesson(session, lesson)
+
+    return "Lesson deleted successfully"
