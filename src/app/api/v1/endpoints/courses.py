@@ -131,7 +131,7 @@ async def dlt_course(
         ) from None
 
 
-@router.post("/{course_id}/lessons/{lesson_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{course_id}/lessons/{lesson_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def dlt_lesson(
     course_id: int,
     lesson_id: int,
