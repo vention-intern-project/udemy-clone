@@ -4,6 +4,7 @@ from app.feature.course.models import Course, Lesson
 from app.feature.course.repository import (
     delete_course,
     delete_lesson,
+    get_all_courses,
     get_course_by_id,
     get_course_with_lessons,
     get_lesson_by_id,
@@ -171,3 +172,7 @@ async def deleting_lesson(
     await delete_lesson(session, lesson)
 
     return "Lesson deleted successfully"
+
+
+async def get_courses_list(session: AsyncSession) -> list[Course]:
+    return await get_all_courses(session)
