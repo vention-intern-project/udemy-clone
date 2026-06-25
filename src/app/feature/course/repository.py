@@ -38,3 +38,12 @@ async def delete_course(session: AsyncSession, course: Course) -> None:
 async def delete_lesson(session: AsyncSession, lesson: Lesson) -> None:
     await session.delete(lesson)
     await session.commit()
+
+
+async def get_all_courses(session: AsyncSession) -> list[Course]:
+    result = await session.execute(
+        select(Course).options(
+            joinedload(Course.instructor), selectinload(Course.lessons)
+        )
+    )
+    return list(result.scalars().all())
