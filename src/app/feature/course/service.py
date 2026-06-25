@@ -1,7 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.feature.course.models import Course, Lesson
-from app.feature.course.repository import get_course_by_id, get_lesson_by_id, delete_course, delete_lesson
+from app.feature.course.repository import (
+    delete_course,
+    delete_lesson,
+    get_course_by_id,
+    get_lesson_by_id,
+)
 from app.feature.course.schemas import (
     CourseCreateRequest,
     CourseUpdateRequest,
@@ -112,9 +117,9 @@ async def update_lesson(
 
 
 async def deleting_course(
-        session: AsyncSession,
-        course_id: int,
-        user_id: int,
+    session: AsyncSession,
+    course_id: int,
+    user_id: int,
 ) -> str:
     course = await get_course_by_id(session, course_id)
 
@@ -122,9 +127,7 @@ async def deleting_course(
         raise ValueError("Course not found")
 
     if course.instructor_id != user_id:
-        raise PermissionError(
-            "You do not have permission to delete this course."
-        )
+        raise PermissionError("You do not have permission to delete this course.")
 
     await delete_course(session, course)
 
@@ -132,10 +135,10 @@ async def deleting_course(
 
 
 async def deleting_lesson(
-        session: AsyncSession,
-        course_id: int,
-        lesson_id: int,
-        user_id: int,
+    session: AsyncSession,
+    course_id: int,
+    lesson_id: int,
+    user_id: int,
 ) -> str:
     lesson = await get_lesson_by_id(session, lesson_id)
 
@@ -143,9 +146,7 @@ async def deleting_lesson(
         raise ValueError("Lesson not found")
 
     if lesson.course.id != course_id:
-        raise PermissionError(
-            "This lesson does not belong to this course."
-        )
+        raise PermissionError("This lesson does not belong to this course.")
 
     if lesson.course.instructor_id != user_id:
         raise PermissionError(

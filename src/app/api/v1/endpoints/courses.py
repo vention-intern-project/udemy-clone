@@ -8,11 +8,17 @@ from app.feature.course.schemas import (
     CourseCreateRequest,
     CourseResponse,
     CourseUpdateRequest,
+    DeleteMessageResponse,
     LessonCreateRequest,
     LessonResponse,
-    DeleteMessageResponse,
 )
-from app.feature.course.service import create_course, create_lesson, update_course, deleting_lesson, deleting_course
+from app.feature.course.service import (
+    create_course,
+    create_lesson,
+    deleting_course,
+    deleting_lesson,
+    update_course,
+)
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
 
