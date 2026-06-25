@@ -3,6 +3,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
+from app.api.v1.dependencies import get_current_user_id
 from app.db.database import get_db
 from app.feature.course.schemas import (
     CourseCreateRequest,
@@ -36,17 +37,9 @@ def _unauthorized() -> HTTPException:
 @router.post("", response_model=CourseResponse)
 async def creating_course(
     payload: CourseCreateRequest,
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    user_id: int = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_db),
 ):
-    if credentials is None or credentials.scheme.lower() != "bearer":
-        raise _unauthorized()
-
-    try:
-        token_payload = decode_token(credentials.credentials)
-        user_id = _extract_user_id(token_payload)
-    except Exception:
-        raise _unauthorized() from None
     user = await get_user_by_id(session, user_id)
 
     if user.role != UserRole.INSTRUCTOR:
@@ -70,18 +63,9 @@ async def creating_course(
 async def creating_lesson(
     course_id: int,
     payload: LessonCreateRequest,
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    user_id: int = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_db),
 ):
-    if credentials is None or credentials.scheme.lower() != "bearer":
-        raise _unauthorized()
-
-    try:
-        token_payload = decode_token(credentials.credentials)
-        user_id = _extract_user_id(token_payload)
-    except Exception:
-        raise _unauthorized() from None
-
     try:
         lesson = await create_lesson(session, course_id, user_id, payload)
     except PermissionError as e:
@@ -108,18 +92,9 @@ async def creating_lesson(
 async def patch_course(
     course_id: int,
     payload: CourseUpdateRequest,
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    user_id: int = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_db),
 ):
-    if credentials is None or credentials.scheme.lower() != "bearer":
-        raise _unauthorized()
-
-    try:
-        token_payload = decode_token(credentials.credentials)
-        user_id = _extract_user_id(token_payload)
-    except Exception:
-        raise _unauthorized() from None
-
     try:
         course = await update_course(session, course_id, user_id, payload)
     except PermissionError as e:
