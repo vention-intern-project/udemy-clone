@@ -6,6 +6,7 @@ from app.db.database import get_db
 from app.feature.course.schemas import (
     CourseCreateRequest,
     CourseDetailResponse,
+    CourseListResponse,
     CourseResponse,
     CourseUpdateRequest,
     DeleteMessageResponse,
@@ -18,12 +19,19 @@ from app.feature.course.service import (
     deleting_course,
     deleting_lesson,
     get_course_detail,
+    get_courses_list,
     update_course,
 )
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
 
 router = APIRouter(prefix="/courses", tags=["courses"])
+
+
+@router.get("", response_model=CourseListResponse)
+async def list_courses(session: AsyncSession = Depends(get_db)):
+    courses = await get_courses_list(session)
+    return CourseListResponse(items=courses)
 
 
 @router.post("", response_model=CourseResponse)
