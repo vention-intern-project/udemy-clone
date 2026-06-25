@@ -1,3 +1,4 @@
+from decimal import Decimal
 from unittest.mock import AsyncMock
 
 import pytest
@@ -30,6 +31,13 @@ def mock_service(monkeypatch):
     monkeypatch.setattr(courses, "get_course_detail", get_detail_mock)
     monkeypatch.setattr(courses, "update_course", update_mock)
     return get_detail_mock, update_mock
+
+
+@pytest.fixture
+def mock_list_service(monkeypatch):
+    list_mock = AsyncMock()
+    monkeypatch.setattr(courses, "get_courses_list", list_mock)
+    return list_mock
 
 
 def test_get_course_not_found(client, mock_service):
@@ -105,3 +113,42 @@ def test_patch_course_requires_auth():
 
     assert response.status_code == 401
     assert response.json() == {"detail": "Could not validate credentials"}
+
+
+def test_list_courses_empty(client, mock_list_service):
+    mock_list_service.return_value = []
+
+    response = client.get("/courses")
+
+    assert response.status_code == 200
+    assert response.json() == {"items": []}
+
+
+def test_list_courses_returns_items(client, mock_list_service):
+    lesson = LessonFactory(id=1, title="Intro")
+    instructor = UserFactory(name="Jane", surname="Doe")
+    course = CourseFactory(
+        id=1,
+        instructor=instructor,
+        title="Python 101",
+        description="Intro",
+        price=Decimal("9.99"),
+        currency="USD",
+        lessons=[lesson],
+    )
+    mock_list_service.return_value = [course]
+
+    response = client.get("/courses")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["items"]) == 1
+    item = data["items"][0]
+    assert item["id"] == 1
+    assert item["title"] == "Python 101"
+    assert item["price"] == "9.99"
+    assert item["currency"] == "USD"
+    assert item["instructor"]["name"] == "Jane"
+    assert len(item["lessons"]) == 1
+    assert item["lessons"][0]["id"] == 1
+    assert item["lessons"][0]["title"] == "Intro"
