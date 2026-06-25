@@ -1,11 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import decode_token
+from app.api.v1.dependencies import get_current_user_id
 from app.db.database import get_db
-from app.feature.course.schemas import CourseResponse, CourseUpdateRequest
-from app.feature.course.service import update_course
+from app.feature.course.schemas import (
+    CourseCreateRequest,
+    CourseResponse,
+    CourseUpdateRequest,
+    LessonCreateRequest,
+    LessonResponse,
+)
+from app.feature.course.service import create_course, create_lesson, update_course
+from app.feature.user.models import UserRole
+from app.feature.user.repository import get_user_by_id
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -25,22 +33,67 @@ def _unauthorized() -> HTTPException:
     )
 
 
+@router.post("", response_model=CourseResponse)
+async def creating_course(
+    payload: CourseCreateRequest,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    user = await get_user_by_id(session, user_id)
+
+    if user.role != UserRole.INSTRUCTOR:
+        raise HTTPException(
+            status_code=403,
+            detail="Only instructors can create courses",
+        )
+
+    try:
+        course = await create_course(session, user_id, payload)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    return course
+
+
+@router.post("/{course_id}/lessons", response_model=LessonResponse)
+async def creating_lesson(
+    course_id: int,
+    payload: LessonCreateRequest,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        lesson = await create_lesson(session, course_id, user_id, payload)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    if lesson is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lesson not found",
+        )
+
+    return lesson
+
+
 @router.patch("/{course_id}", response_model=CourseResponse)
 async def patch_course(
     course_id: int,
     payload: CourseUpdateRequest,
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    user_id: int = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_db),
 ):
-    if credentials is None or credentials.scheme.lower() != "bearer":
-        raise _unauthorized()
-
-    try:
-        token_payload = decode_token(credentials.credentials)
-        user_id = _extract_user_id(token_payload)
-    except Exception:
-        raise _unauthorized() from None
-
     try:
         course = await update_course(session, course_id, user_id, payload)
     except PermissionError as e:
