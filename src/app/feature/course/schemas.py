@@ -60,3 +60,7 @@ class LessonCreateRequest(BaseModel):
     lesson_type: LessonType | None = None
     description: str | None = None
     is_published: bool | None = None
+
+
+class DeleteMessageResponse(BaseModel):
+    message: str

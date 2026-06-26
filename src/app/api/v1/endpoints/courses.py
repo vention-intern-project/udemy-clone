@@ -8,10 +8,17 @@ from app.feature.course.schemas import (
     CourseCreateRequest,
     CourseResponse,
     CourseUpdateRequest,
+    DeleteMessageResponse,
     LessonCreateRequest,
     LessonResponse,
 )
-from app.feature.course.service import create_course, create_lesson, update_course
+from app.feature.course.service import (
+    create_course,
+    create_lesson,
+    deleting_course,
+    deleting_lesson,
+    update_course,
+)
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
 
@@ -109,3 +116,48 @@ async def patch_course(
         )
 
     return course
+
+
+@router.delete("/{course_id}", response_model=DeleteMessageResponse)
+async def dlt_course(
+    course_id: int,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        message = await deleting_course(session, course_id, user_id)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    return DeleteMessageResponse(message=message)
+
+
+@router.delete("/{course_id}/lessons/{lesson_id}", response_model=DeleteMessageResponse)
+async def dlt_lesson(
+    course_id: int,
+    lesson_id: int,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        message = await deleting_lesson(session, course_id, lesson_id, user_id)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    return DeleteMessageResponse(message=message)
