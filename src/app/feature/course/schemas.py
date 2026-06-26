@@ -96,3 +96,7 @@ class CourseDetailResponse(BaseModel):
     updated_at: datetime
     instructor: InstructorResponse
     lessons: list[LessonDetailResponse]
+
+
+class DeleteMessageResponse(BaseModel):
+    message: str
