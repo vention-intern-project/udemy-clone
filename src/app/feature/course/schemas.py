@@ -100,3 +100,27 @@ class CourseDetailResponse(BaseModel):
 
 class DeleteMessageResponse(BaseModel):
     message: str
+
+
+class LessonBriefResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+
+
+class CourseListItemResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    description: str | None
+    price: Decimal
+    currency: str
+    published_at: datetime | None
+    instructor: InstructorResponse
+    lessons: list[LessonBriefResponse]
+
+
+class CourseListResponse(BaseModel):
+    items: list[CourseListItemResponse]
