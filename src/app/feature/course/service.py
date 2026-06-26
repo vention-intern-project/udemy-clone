@@ -5,6 +5,7 @@ from app.feature.course.repository import (
     delete_course,
     delete_lesson,
     get_course_by_id,
+    get_course_with_lessons,
     get_lesson_by_id,
 )
 from app.feature.course.schemas import (
@@ -114,6 +115,20 @@ async def update_lesson(
     await session.commit()
     await session.refresh(lesson)
     return lesson
+
+
+async def get_lesson_detail(
+    session: AsyncSession,
+    lesson_id: int,
+) -> Lesson | None:
+    return await get_lesson_by_id(session, lesson_id)
+
+
+async def get_course_detail(
+    session: AsyncSession,
+    course_id: int,
+) -> Course | None:
+    return await get_course_with_lessons(session, course_id)
 
 
 async def deleting_course(

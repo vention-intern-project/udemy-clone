@@ -16,6 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.feature.user.models import User
 
 
 class LessonType(enum.StrEnum):
@@ -62,6 +63,8 @@ class Course(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+    instructor: Mapped["User"] = relationship()
 
     lessons: Mapped[list["Lesson"]] = relationship(
         back_populates="course",

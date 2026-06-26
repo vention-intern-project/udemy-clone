@@ -62,5 +62,41 @@ class LessonCreateRequest(BaseModel):
     is_published: bool | None = None
 
 
+class InstructorResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    surname: str
+
+
+class LessonDetailResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    lesson_type: LessonType
+    file_url: str | None
+    description: str | None
+    is_published: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class CourseDetailResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    description: str | None
+    price: Decimal
+    currency: str
+    published_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+    instructor: InstructorResponse
+    lessons: list[LessonDetailResponse]
+
+
 class DeleteMessageResponse(BaseModel):
     message: str

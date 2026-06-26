@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import get_current_user_id
 from app.db.database import get_db
 from app.feature.course.schemas import (
     CourseCreateRequest,
+    CourseDetailResponse,
     CourseResponse,
     CourseUpdateRequest,
     DeleteMessageResponse,
@@ -17,27 +17,13 @@ from app.feature.course.service import (
     create_lesson,
     deleting_course,
     deleting_lesson,
+    get_course_detail,
     update_course,
 )
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
 
 router = APIRouter(prefix="/courses", tags=["courses"])
-bearer_scheme = HTTPBearer(auto_error=False)
-
-
-def _extract_user_id(payload: dict) -> int:
-    value = payload.get("id")
-    if value is not None:
-        return int(value)
-    raise ValueError("Token payload does not contain a user identifier")
-
-
-def _unauthorized() -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-    )
 
 
 @router.post("", response_model=CourseResponse)
@@ -92,6 +78,22 @@ async def creating_lesson(
         )
 
     return lesson
+
+
+@router.get("/{course_id}", response_model=CourseDetailResponse)
+async def get_course(
+    course_id: int,
+    session: AsyncSession = Depends(get_db),
+):
+    course = await get_course_detail(session, course_id)
+
+    if course is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Course not found",
+        )
+
+    return course
 
 
 @router.patch("/{course_id}", response_model=CourseResponse)
