@@ -124,3 +124,9 @@ class CourseListItemResponse(BaseModel):
 
 class CourseListResponse(BaseModel):
     items: list[CourseListItemResponse]
+    page: int
+    page_size: int
+    total: int
+    pages: int
+    has_next: bool
+    has_previous: bool
