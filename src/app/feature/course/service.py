@@ -13,11 +13,11 @@ from app.feature.course.repository import (
 )
 from app.feature.course.schemas import (
     CourseCreateRequest,
+    CourseListItemResponse,
+    CourseListResponse,
     CourseUpdateRequest,
     LessonCreateRequest,
     LessonUpdateRequest,
-    CourseListResponse,
-    CourseListItemResponse
 )
 
 
@@ -179,18 +179,14 @@ async def deleting_lesson(
 
 
 async def get_courses_list(
-        session: AsyncSession,
-        page: int,
-        page_size: int) -> CourseListResponse:
+    session: AsyncSession, page: int, page_size: int
+) -> CourseListResponse:
     courses, total = await get_all_courses(session, page, page_size)
 
     pages = math.ceil(total / page_size)
 
     return CourseListResponse(
-        items=[
-            CourseListItemResponse.model_validate(course)
-            for course in courses
-        ],
+        items=[CourseListItemResponse.model_validate(course) for course in courses],
         page=page,
         page_size=page_size,
         total=total,
