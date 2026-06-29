@@ -1,3 +1,5 @@
+import math
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.feature.course.models import Course, Lesson
@@ -11,6 +13,8 @@ from app.feature.course.repository import (
 )
 from app.feature.course.schemas import (
     CourseCreateRequest,
+    CourseListItemResponse,
+    CourseListResponse,
     CourseUpdateRequest,
     LessonCreateRequest,
     LessonUpdateRequest,
@@ -174,5 +178,19 @@ async def deleting_lesson(
     return "Lesson deleted successfully"
 
 
-async def get_courses_list(session: AsyncSession) -> list[Course]:
-    return await get_all_courses(session)
+async def get_courses_list(
+    session: AsyncSession, page: int, page_size: int
+) -> CourseListResponse:
+    courses, total = await get_all_courses(session, page, page_size)
+
+    pages = math.ceil(total / page_size)
+
+    return CourseListResponse(
+        items=[CourseListItemResponse.model_validate(course) for course in courses],
+        page=page,
+        page_size=page_size,
+        total=total,
+        pages=pages,
+        has_next=page < pages,
+        has_previous=page > 1,
+    )
