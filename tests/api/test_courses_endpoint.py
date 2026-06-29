@@ -7,9 +7,13 @@ from fastapi.testclient import TestClient
 from app.api.v1.dependencies import get_current_user_id
 from app.api.v1.endpoints import courses
 from app.db.database import get_db
+from app.feature.course.schemas import (
+    CourseListItemResponse,
+    CourseListResponse,
+    InstructorResponse,
+    LessonBriefResponse,
+)
 from app.main import app
-from app.feature.course.schemas import (CourseListResponse, LessonBriefResponse, InstructorResponse,
-                                        CourseListItemResponse)
 
 from .factories import CourseFactory, LessonFactory, UserFactory
 
