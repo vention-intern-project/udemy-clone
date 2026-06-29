@@ -3,12 +3,9 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.v1.dependencies import get_current_user_id
 from app.api.v1.endpoints import users
 from app.db.database import get_db
 from app.main import app
-
-from .factories import UserFactory
 
 
 @pytest.fixture
@@ -41,13 +38,13 @@ def test_register_success(client, mock_auth_service):
     register, _, _ = mock_auth_service
 
     register.return_value = {
-    "user": {
-        "id": 1,
-        "email": "john@example.com",
-    },
-    "access_token": "fake-access-token",
-    "token_type": "bearer",
-}
+        "user": {
+            "id": 1,
+            "email": "john@example.com",
+        },
+        "access_token": "fake-access-token",
+        "token_type": "bearer",
+    }
 
     response = client.post(
         "/signup",
@@ -57,7 +54,7 @@ def test_register_success(client, mock_auth_service):
             "surname": "Doe",
             "password": "Password123!",
             "role": "student",
-        }
+        },
     )
 
     assert response.status_code == 200
@@ -78,7 +75,7 @@ def test_register_duplicate_email(client, mock_auth_service):
             "surname": "Doe",
             "password": "Password123!",
             "role": "student",
-        }
+        },
     )
 
     assert response.status_code == 400
@@ -94,7 +91,7 @@ def test_register_invalid_email(client):
             "surname": "Doe",
             "password": "Password123!",
             "role": "student",
-        }
+        },
     )
 
     assert response.status_code == 400
@@ -108,7 +105,7 @@ def test_register_missing_password(client):
             "name": "John",
             "surname": "Doe",
             "role": "student",
-        }
+        },
     )
 
     assert response.status_code == 422
@@ -117,28 +114,16 @@ def test_register_missing_password(client):
 def test_forgot_password_success(client, mock_auth_service):
     _, forgot, _ = mock_auth_service
 
-    forgot.return_value = {
-        "message": "If account exists, reset email sent"
-    }
+    forgot.return_value = {"message": "If account exists, reset email sent"}
 
-    response = client.post(
-        "/forgot-password",
-        json={
-            "email": "john@example.com"
-        }
-    )
+    response = client.post("/forgot-password", json={"email": "john@example.com"})
 
     assert response.status_code == 200
     assert response.json()["message"] == "If account exists, reset email sent"
 
 
 def test_forgot_password_invalid_email(client):
-    response = client.post(
-        "/forgot-password",
-        json={
-            "email": "abc"
-        }
-    )
+    response = client.post("/forgot-password", json={"email": "abc"})
 
     assert response.status_code == 422
 
@@ -146,16 +131,11 @@ def test_forgot_password_invalid_email(client):
 def test_reset_password_success(client, mock_auth_service):
     _, _, reset = mock_auth_service
 
-    reset.return_value = {
-        "message": "Password reset successful"
-    }
+    reset.return_value = {"message": "Password reset successful"}
 
     response = client.post(
         "/reset-password",
-        json={
-            "token": "valid-token",
-            "new_password": "NewPassword123!"
-        }
+        json={"token": "valid-token", "new_password": "NewPassword123!"},
     )
 
     assert response.status_code == 200
@@ -169,10 +149,7 @@ def test_reset_password_invalid_token(client, mock_auth_service):
 
     response = client.post(
         "/reset-password",
-        json={
-            "token": "bad-token",
-            "new_password": "NewPassword123!"
-        }
+        json={"token": "bad-token", "new_password": "NewPassword123!"},
     )
 
     assert response.status_code == 400
@@ -186,10 +163,7 @@ def test_reset_password_expired_token(client, mock_auth_service):
 
     response = client.post(
         "/reset-password",
-        json={
-            "token": "expired-token",
-            "new_password": "NewPassword123!"
-        }
+        json={"token": "expired-token", "new_password": "NewPassword123!"},
     )
 
     assert response.status_code == 400
@@ -197,11 +171,6 @@ def test_reset_password_expired_token(client, mock_auth_service):
 
 
 def test_reset_password_missing_token(client):
-    response = client.post(
-        "/reset-password",
-        json={
-            "new_password": "NewPassword123!"
-        }
-    )
+    response = client.post("/reset-password", json={"new_password": "NewPassword123!"})
 
     assert response.status_code == 422
