@@ -8,6 +8,8 @@ from app.api.v1.dependencies import get_current_user_id
 from app.api.v1.endpoints import courses
 from app.db.database import get_db
 from app.main import app
+from app.feature.course.schemas import (CourseListResponse, LessonBriefResponse, InstructorResponse,
+                                        CourseListItemResponse)
 
 from .factories import CourseFactory, LessonFactory, UserFactory
 
@@ -116,33 +118,78 @@ def test_patch_course_requires_auth():
 
 
 def test_list_courses_empty(client, mock_list_service):
-    mock_list_service.return_value = []
+    mock_list_service.return_value = CourseListResponse(
+        items=[],
+        page=1,
+        page_size=10,
+        total=0,
+        pages=0,
+        has_next=False,
+        has_previous=False,
+    )
 
     response = client.get("/courses")
 
     assert response.status_code == 200
-    assert response.json() == {"items": []}
+    assert response.json() == {
+        "items": [],
+        "page": 1,
+        "page_size": 10,
+        "total": 0,
+        "pages": 0,
+        "has_next": False,
+        "has_previous": False,
+    }
 
 
 def test_list_courses_returns_items(client, mock_list_service):
-    lesson = LessonFactory(id=1, title="Intro")
-    instructor = UserFactory(name="Jane", surname="Doe")
-    course = CourseFactory(
+    lesson = LessonBriefResponse(
         id=1,
-        instructor=instructor,
+        title="Intro",
+    )
+
+    instructor = InstructorResponse(
+        id=1,
+        name="Jane",
+        surname="Doe",
+    )
+
+    item = CourseListItemResponse(
+        id=1,
         title="Python 101",
         description="Intro",
         price=Decimal("9.99"),
         currency="USD",
+        published_at=None,
+        instructor=instructor,
         lessons=[lesson],
     )
-    mock_list_service.return_value = [course]
+
+    mock_list_service.return_value = CourseListResponse(
+        items=[item],
+        page=1,
+        page_size=10,
+        total=1,
+        pages=1,
+        has_next=False,
+        has_previous=False,
+    )
 
     response = client.get("/courses")
 
     assert response.status_code == 200
+
     data = response.json()
+
+    assert data["page"] == 1
+    assert data["page_size"] == 10
+    assert data["total"] == 1
+    assert data["pages"] == 1
+    assert data["has_next"] is False
+    assert data["has_previous"] is False
+
     assert len(data["items"]) == 1
+
     item = data["items"][0]
     assert item["id"] == 1
     assert item["title"] == "Python 101"
