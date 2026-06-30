@@ -17,6 +17,7 @@ dependencies = [
     "pwdlib[argon2]>=0.3.0",
     "fastapi-mail>=1.6.4",
     "factory-boy>=3.3.3",
+    "python-multipart>=0.0.32",
 ]
 
 [dependency-groups]
