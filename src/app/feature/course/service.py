@@ -2,6 +2,7 @@ import math
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.storage import delete_file
 from app.feature.course.models import Course, Lesson
 from app.feature.course.repository import (
     delete_course,
@@ -122,6 +123,31 @@ async def update_lesson(
     return lesson
 
 
+async def upload_lesson_file(
+    session: AsyncSession,
+    lesson_id: int,
+    user_id: int,
+    file_url: str,
+) -> Lesson:
+    lesson = await get_lesson_by_id(session, lesson_id)
+
+    if lesson is None:
+        raise ValueError("Lesson not found")
+
+    course = await get_course_by_id(session, lesson.course_id)
+
+    if course is None or course.instructor_id != user_id:
+        raise PermissionError(
+            "You do not have permission to upload files to this lesson."
+        )
+
+    lesson.file_url = file_url
+
+    await session.commit()
+    await session.refresh(lesson)
+    return lesson
+
+
 async def get_lesson_detail(
     session: AsyncSession,
     lesson_id: int,
@@ -172,6 +198,9 @@ async def deleting_lesson(
         raise PermissionError(
             "You do not have permission to delete the classes of this course."
         )
+
+    if lesson.file_url:
+        delete_file(lesson.file_url)
 
     await delete_lesson(session, lesson)
 

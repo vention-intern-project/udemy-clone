@@ -1,10 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import get_current_user_id
+from app.core.storage import delete_file, save_file
 from app.db.database import get_db
 from app.feature.course.schemas import LessonResponse, LessonUpdateRequest
-from app.feature.course.service import get_lesson_detail, update_lesson
+from app.feature.course.service import (
+    get_lesson_detail,
+    update_lesson,
+    upload_lesson_file,
+)
 
 router = APIRouter(prefix="/lessons", tags=["lessons"])
 
@@ -47,3 +52,56 @@ async def patch_lesson(
         )
 
     return lesson
+
+
+@router.post("/{lesson_id}/upload-file", response_model=LessonResponse)
+async def upload_file(
+    lesson_id: int,
+    file: UploadFile,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        lesson = await get_lesson_detail(session, lesson_id)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lesson not found",
+        ) from None
+
+    if lesson is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lesson not found",
+        )
+
+    lesson_type = lesson.lesson_type.value
+    old_file_url = lesson.file_url
+
+    try:
+        file_url = await save_file(file, lesson_type)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from None
+
+    try:
+        updated_lesson = await upload_lesson_file(session, lesson_id, user_id, file_url)
+    except PermissionError as e:
+        delete_file(file_url)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+    except ValueError as e:
+        delete_file(file_url)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from None
+
+    if old_file_url:
+        delete_file(old_file_url)
+
+    return updated_lesson

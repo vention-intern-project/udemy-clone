@@ -1,6 +1,7 @@
 import enum
 from datetime import datetime
 from decimal import Decimal
+from pathlib import Path
 
 from sqlalchemy import (
     Boolean,
@@ -107,3 +108,9 @@ class Lesson(Base):
     )
 
     course: Mapped["Course"] = relationship(back_populates="lessons")
+
+    @property
+    def download_url(self) -> str | None:
+        if not self.file_url:
+            return None
+        return f"/media/lessons/{Path(self.file_url).name}"

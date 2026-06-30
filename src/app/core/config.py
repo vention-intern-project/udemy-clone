@@ -23,6 +23,7 @@ class Settings:
     MAIL_STARTTLS = os.getenv("MAIL_STARTTLS", "")
     MAIL_SSL_TLS = os.getenv("MAIL_SSL_TLS", "")
     FRONTEND_URL = os.getenv("FRONTEND_URL", "")
+    MEDIA_ROOT = os.getenv("MEDIA_ROOT", "media")
 
     @property
     def DATABASE_URL(self):
