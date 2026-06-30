@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -40,10 +40,19 @@ async def delete_lesson(session: AsyncSession, lesson: Lesson) -> None:
     await session.commit()
 
 
-async def get_all_courses(session: AsyncSession) -> list[Course]:
+async def get_all_courses(
+    session: AsyncSession, page: int, page_size: int
+) -> tuple[list[Course], int]:
+    offset = (page - 1) * page_size
     result = await session.execute(
-        select(Course).options(
-            joinedload(Course.instructor), selectinload(Course.lessons)
-        )
+        select(Course)
+        .options(joinedload(Course.instructor), selectinload(Course.lessons))
+        .offset(offset)
+        .limit(page_size)
     )
-    return list(result.scalars().all())
+    courses = list(result.scalars().all())
+
+    count_stmt = select(func.count()).select_from(Course)
+    total = await session.scalar(count_stmt)
+
+    return courses, total
