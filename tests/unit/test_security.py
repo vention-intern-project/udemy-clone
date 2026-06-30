@@ -6,6 +6,13 @@ from jose import JWTError, jwt
 from app.core import security
 
 
+@pytest.fixture(autouse=True)
+def security_settings(monkeypatch):
+    monkeypatch.setattr(security.settings, "SECRET_KEY", "test-secret-key")
+    monkeypatch.setattr(security.settings, "ALGORITHM", "HS256")
+    monkeypatch.setattr(security.settings, "ACCESS_TOKEN_EXPIRE_HOURS", 2)
+
+
 def test_create_access_token_sets_type_and_expiry():
     token = security.create_access_token({"id": "42"})
 
