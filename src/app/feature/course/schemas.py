@@ -41,7 +41,7 @@ class LessonResponse(BaseModel):
     course_id: int
     title: str
     lesson_type: LessonType
-    file_url: str | None
+    download_url: str | None
     description: str | None
     is_published: bool
     created_at: datetime
@@ -76,7 +76,7 @@ class LessonDetailResponse(BaseModel):
     id: int
     title: str
     lesson_type: LessonType
-    file_url: str | None
+    download_url: str | None
     description: str | None
     is_published: bool
     created_at: datetime
