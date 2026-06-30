@@ -174,3 +174,62 @@ def test_reset_password_missing_token(client):
     response = client.post("/reset-password", json={"new_password": "NewPassword123!"})
 
     assert response.status_code == 422
+
+
+@pytest.fixture
+def mock_login_service(monkeypatch):
+    login_mock = AsyncMock()
+    monkeypatch.setattr(users, "login_user", login_mock)
+    return login_mock
+
+
+def test_login_success(client, mock_login_service):
+    mock_login_service.return_value = "fake-jwt-token"
+
+    response = client.post(
+        "/login",
+        json={"email": "john@example.com", "password": "Password123!"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["access_token"] == "fake-jwt-token"
+
+
+def test_login_wrong_password(client, mock_login_service):
+    mock_login_service.side_effect = ValueError("Invalid credentials")
+
+    response = client.post(
+        "/login",
+        json={"email": "john@example.com", "password": "WrongPassword!"},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid email or password"
+
+
+def test_login_nonexistent_email(client, mock_login_service):
+    mock_login_service.side_effect = ValueError("Invalid credentials")
+
+    response = client.post(
+        "/login",
+        json={"email": "unknown@example.com", "password": "Password123!"},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid email or password"
+
+
+def test_login_missing_fields(client):
+    response = client.post("/login", json={})
+
+    assert response.status_code == 422
+
+
+def test_login_invalid_email_format(client):
+    response = client.post(
+        "/login",
+        json={"email": "not-an-email", "password": "Password123!"},
+    )
+
+    assert response.status_code == 422
