@@ -17,6 +17,7 @@ class UserFactory(factory.Factory):
     surname = "Doe"
     password = "hashed_password"
     role = UserRole.INSTRUCTOR
+    created_at = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 class CourseFactory(factory.Factory):

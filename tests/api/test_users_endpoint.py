@@ -3,9 +3,11 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
+from app.api.v1.dependencies import get_current_user_id
 from app.api.v1.endpoints import users
 from app.db.database import get_db
 from app.main import app
+from tests.api.factories import UserFactory
 
 
 @pytest.fixture
@@ -233,3 +235,42 @@ def test_login_invalid_email_format(client):
     )
 
     assert response.status_code == 422
+
+
+@pytest.fixture
+def mock_me_service(monkeypatch):
+    get_user_mock = AsyncMock()
+    monkeypatch.setattr(users, "get_user_profile", get_user_mock)
+    return get_user_mock
+
+
+def test_me_rejects_missing_credentials(client):
+    response = client.get("/me")
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Could not validate credentials"}
+
+
+def test_me_rejects_invalid_token(client, monkeypatch):
+    def raise_value_error(*args, **kwargs):
+        raise ValueError()
+
+    monkeypatch.setattr(users, "get_current_user_id", raise_value_error)
+
+    response = client.get("/me", headers={"Authorization": "Bearer invalid"})
+
+    assert response.status_code == 401
+
+
+def test_me_returns_profile(client, mock_me_service):
+
+    profile = UserFactory(name="Alice", surname="Smith")
+    mock_me_service.return_value = profile
+    app.dependency_overrides[get_current_user_id] = lambda: 42
+
+    response = client.get("/me", headers={"Authorization": "Bearer token"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["email"] == "alice@example.com"
+    assert data["role"] == "instructor"
