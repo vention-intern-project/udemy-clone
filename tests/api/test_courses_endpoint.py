@@ -46,6 +46,19 @@ def mock_list_service(monkeypatch):
     return list_mock
 
 
+@pytest.fixture
+def empty_list_response():
+    return CourseListResponse(
+        items=[],
+        page=1,
+        page_size=10,
+        total=0,
+        pages=0,
+        has_next=False,
+        has_previous=False,
+    )
+
+
 def test_get_course_not_found(client, mock_service):
     get_detail, _ = mock_service
     get_detail.return_value = None
@@ -121,16 +134,8 @@ def test_patch_course_requires_auth():
     assert response.json() == {"detail": "Could not validate credentials"}
 
 
-def test_list_courses_empty(client, mock_list_service):
-    mock_list_service.return_value = CourseListResponse(
-        items=[],
-        page=1,
-        page_size=10,
-        total=0,
-        pages=0,
-        has_next=False,
-        has_previous=False,
-    )
+def test_list_courses_empty(client, mock_list_service, empty_list_response):
+    mock_list_service.return_value = empty_list_response
 
     response = client.get("/courses")
 
@@ -203,3 +208,42 @@ def test_list_courses_returns_items(client, mock_list_service):
     assert len(item["lessons"]) == 1
     assert item["lessons"][0]["id"] == 1
     assert item["lessons"][0]["title"] == "Intro"
+
+
+def test_list_courses_with_search_query(client, mock_list_service, empty_list_response):
+    mock_list_service.return_value = empty_list_response
+
+    response = client.get("/courses?query=python")
+
+    assert response.status_code == 200
+    mock_list_service.assert_called_once()
+    _, arg_page, arg_page_size, arg_query = mock_list_service.call_args.args
+    assert arg_page == 1
+    assert arg_page_size == 100
+    assert arg_query == "python"
+
+
+def test_list_courses_without_query_returns_all(
+    client, mock_list_service, empty_list_response
+):
+    mock_list_service.return_value = empty_list_response
+
+    response = client.get("/courses")
+
+    assert response.status_code == 200
+    mock_list_service.assert_called_once()
+    _, arg_page, arg_page_size, arg_query = mock_list_service.call_args.args
+    assert arg_page == 1
+    assert arg_page_size == 100
+    assert arg_query is None
+
+
+def test_list_courses_search_empty_result(
+    client, mock_list_service, empty_list_response
+):
+    mock_list_service.return_value = empty_list_response
+
+    response = client.get("/courses?query=nonexistent")
+
+    assert response.status_code == 200
+    assert response.json()["items"] == []
