@@ -208,9 +208,12 @@ async def deleting_lesson(
 
 
 async def get_courses_list(
-    session: AsyncSession, page: int, page_size: int
+    session: AsyncSession,
+    page: int,
+    page_size: int,
+    search_query: str | None = None,
 ) -> CourseListResponse:
-    courses, total = await get_all_courses(session, page, page_size)
+    courses, total = await get_all_courses(session, page, page_size, search_query)
 
     pages = math.ceil(total / page_size)
 
