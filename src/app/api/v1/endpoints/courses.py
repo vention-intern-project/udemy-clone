@@ -32,9 +32,10 @@ router = APIRouter(prefix="/courses", tags=["courses"])
 async def list_courses(
     page: int = 1,
     page_size: int = 100,
+    query: str | None = None,
     session: AsyncSession = Depends(get_db),
 ):
-    return await get_courses_list(session, page, page_size)
+    return await get_courses_list(session, page, page_size, query)
 
 
 @router.post("", response_model=CourseResponse)
