@@ -1,3 +1,5 @@
+import math
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.feature.course.repository import get_course_by_id
@@ -5,9 +7,11 @@ from app.feature.enrollment.models import EnrollmentStatus
 from app.feature.enrollment.repository import (
     create_enrollment,
     get_enrollment_by_user_and_course,
+    get_enrollments_by_user,
 )
 from app.feature.enrollment.schemas import (
     CourseSummary,
+    EnrollmentListResponse,
     EnrollmentResponse,
 )
 from app.feature.user.models import UserRole
@@ -49,4 +53,37 @@ async def enroll_in_course(
         created_at=enrollment.created_at,
         updated_at=enrollment.updated_at,
         course=CourseSummary.model_validate(course),
+    )
+
+
+async def get_my_enrollments(
+    session: AsyncSession,
+    user_id: int,
+    page: int,
+    page_size: int,
+) -> EnrollmentListResponse:
+    enrollments, total = await get_enrollments_by_user(
+        session, user_id, page, page_size
+    )
+    pages = math.ceil(total / page_size) if total > 0 else 0
+
+    return EnrollmentListResponse(
+        items=[
+            EnrollmentResponse(
+                id=e.id,
+                user_id=e.user_id,
+                course_id=e.course_id,
+                status=e.status.value,
+                created_at=e.created_at,
+                updated_at=e.updated_at,
+                course=CourseSummary.model_validate(e.course),
+            )
+            for e in enrollments
+        ],
+        page=page,
+        page_size=page_size,
+        total=total,
+        pages=pages,
+        has_next=page < pages,
+        has_previous=page > 1,
     )
