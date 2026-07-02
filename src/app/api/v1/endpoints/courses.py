@@ -66,7 +66,7 @@ async def creating_course(
 
 
 @router.get(
-    "/courses/{course_id}/lessons",
+    "/{course_id}/lessons",
     response_model=LessonListResponse,
 )
 async def list_lessons(
