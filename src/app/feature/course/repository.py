@@ -1,6 +1,7 @@
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
-from sqlalchemy import func, or_, select, and_
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -111,16 +112,15 @@ async def get_all_courses(
 
     return courses, total
 
+
 async def list_lessons(
-        session: AsyncSession,
-        course_id: int,
-        page: int,
-        size: int,
+    session: AsyncSession,
+    course_id: int,
+    page: int,
+    size: int,
 ) -> tuple[Sequence[Any], Any | None]:
     total = await session.scalar(
-        select(func.count())
-        .select_from(Lesson)
-        .where(Lesson.course_id == course_id)
+        select(func.count()).select_from(Lesson).where(Lesson.course_id == course_id)
     )
 
     query = (

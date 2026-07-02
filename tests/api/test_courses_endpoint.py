@@ -213,14 +213,17 @@ def test_list_courses_returns_items(client, mock_list_service):
 def test_list_courses_with_search_query(client, mock_list_service, empty_list_response):
     mock_list_service.return_value = empty_list_response
 
-    response = client.get("/courses?query=python")
+    response = client.get("/courses?search_query=python")
 
     assert response.status_code == 200
+
     mock_list_service.assert_called_once()
-    _, arg_page, arg_page_size, arg_query = mock_list_service.call_args.args
+
+    _, arg_page, arg_page_size, arg_filters = mock_list_service.call_args.args
+
     assert arg_page == 1
     assert arg_page_size == 100
-    assert arg_query == "python"
+    assert arg_filters.search_query == "python"
 
 
 def test_list_courses_without_query_returns_all(
@@ -231,11 +234,14 @@ def test_list_courses_without_query_returns_all(
     response = client.get("/courses")
 
     assert response.status_code == 200
+
     mock_list_service.assert_called_once()
-    _, arg_page, arg_page_size, arg_query = mock_list_service.call_args.args
+
+    _, arg_page, arg_page_size, arg_filters = mock_list_service.call_args.args
+
     assert arg_page == 1
     assert arg_page_size == 100
-    assert arg_query is None
+    assert arg_filters.search_query is None
 
 
 def test_list_courses_search_empty_result(

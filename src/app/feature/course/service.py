@@ -11,18 +11,18 @@ from app.feature.course.repository import (
     get_course_by_id,
     get_course_with_lessons,
     get_lesson_by_id,
-    list_lessons
+    list_lessons,
 )
 from app.feature.course.schemas import (
     CourseCreateRequest,
+    CourseFilters,
     CourseListItemResponse,
     CourseListResponse,
     CourseUpdateRequest,
     LessonCreateRequest,
-    LessonUpdateRequest,
     LessonListItemResponse,
     LessonListResponse,
-    CourseFilters
+    LessonUpdateRequest,
 )
 
 
@@ -231,11 +231,12 @@ async def get_courses_list(
         has_previous=page > 1,
     )
 
+
 async def get_list_lessons(
-        session: AsyncSession,
-        course_id: int,
-        page: int,
-        size: int,
+    session: AsyncSession,
+    course_id: int,
+    page: int,
+    size: int,
 ):
     lessons, total = await list_lessons(
         session,

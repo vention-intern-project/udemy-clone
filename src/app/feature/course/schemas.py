@@ -1,8 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
 
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.feature.course.models import LessonType
@@ -158,7 +156,7 @@ class LessonListResponse(BaseModel):
 
 
 class CourseFilters(BaseModel):
-    search_query: Optional[str] = None
-    min_price: Optional[float] = None
-    max_price: Optional[float] = None
-    sort: Optional[str] = None
+    search_query: str | None = None
+    min_price: float | None = None
+    max_price: float | None = None
+    sort: str | None = None
