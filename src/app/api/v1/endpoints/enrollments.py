@@ -10,6 +10,7 @@ from app.feature.enrollment.schemas import (
 )
 from app.feature.enrollment.service import (
     enroll_in_course,
+    get_enrollment_detail,
     get_my_enrollments,
 )
 
@@ -57,3 +58,25 @@ async def list_my_enrollments(
     session: AsyncSession = Depends(get_db),
 ):
     return await get_my_enrollments(session, user_id, page, page_size)
+
+
+@router.get("/{enrollment_id}", response_model=EnrollmentResponse)
+async def get_enrollment_endpoint(
+    enrollment_id: int,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        enrollment = await get_enrollment_detail(session, enrollment_id, user_id)
+    except LookupError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from None
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    return enrollment
