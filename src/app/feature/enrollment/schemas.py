@@ -38,3 +38,34 @@ class EnrollmentListResponse(BaseModel):
     pages: int
     has_next: bool
     has_previous: bool
+
+
+class StudentSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    surname: str
+    email: str
+
+
+class CourseEnrollmentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_id: int
+    course_id: int
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    user: StudentSummary
+
+
+class CourseEnrollmentListResponse(BaseModel):
+    items: list[CourseEnrollmentResponse]
+    page: int
+    page_size: int
+    total: int
+    pages: int
+    has_next: bool
+    has_previous: bool
