@@ -75,3 +75,32 @@ async def get_enrollment_by_id(
         .where(Enrollment.id == enrollment_id)
     )
     return result.scalar_one_or_none()
+
+
+async def get_enrollments_by_course(
+    session: AsyncSession,
+    course_id: int,
+    page: int,
+    page_size: int,
+) -> tuple[list[Enrollment], int]:
+    offset = (page - 1) * page_size
+
+    query = (
+        select(Enrollment)
+        .options(selectinload(Enrollment.user))
+        .where(Enrollment.course_id == course_id)
+        .order_by(Enrollment.created_at.desc())
+        .offset(offset)
+        .limit(page_size)
+    )
+    result = await session.execute(query)
+    enrollments = list(result.scalars().all())
+
+    count_stmt = (
+        select(func.count())
+        .select_from(Enrollment)
+        .where(Enrollment.course_id == course_id)
+    )
+    total = await session.scalar(count_stmt)
+
+    return enrollments, total
