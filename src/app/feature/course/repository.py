@@ -91,7 +91,7 @@ async def get_all_courses(
     base_query = select(Course)
 
     if filter_conditions:
-        base_query = base_query.where(and_(*filters))
+        base_query = base_query.where(and_(*filter_conditions))
 
     query = (
         base_query.options(
