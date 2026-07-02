@@ -63,3 +63,15 @@ async def get_enrollments_by_user(
     total = await session.scalar(count_stmt)
 
     return enrollments, total
+
+
+async def get_enrollment_by_id(
+    session: AsyncSession,
+    enrollment_id: int,
+) -> Enrollment | None:
+    result = await session.execute(
+        select(Enrollment)
+        .options(selectinload(Enrollment.course))
+        .where(Enrollment.id == enrollment_id)
+    )
+    return result.scalar_one_or_none()
