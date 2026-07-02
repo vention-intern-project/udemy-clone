@@ -12,6 +12,7 @@ from app.feature.course.schemas import (
     DeleteMessageResponse,
     LessonCreateRequest,
     LessonResponse,
+    LessonListResponse
 )
 from app.feature.course.service import (
     create_course,
@@ -21,6 +22,7 @@ from app.feature.course.service import (
     get_course_detail,
     get_courses_list,
     update_course,
+    get_list_lessons
 )
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
@@ -61,6 +63,24 @@ async def creating_course(
         ) from None
 
     return course
+
+
+@router.get(
+    "/courses/{course_id}/lessons",
+    response_model=LessonListResponse,
+)
+async def list_lessons(
+    course_id: int,
+    page: int = 1,
+    size: int = 100,
+    session: AsyncSession = Depends(get_db),
+):
+    return await get_list_lessons(
+        session,
+        course_id=course_id,
+        page=page,
+        size=size,
+    )
 
 
 @router.post("/{course_id}/lessons", response_model=LessonResponse)
