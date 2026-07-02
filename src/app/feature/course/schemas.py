@@ -130,3 +130,33 @@ class CourseListResponse(BaseModel):
     pages: int
     has_next: bool
     has_previous: bool
+
+
+class LessonListItemResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    lesson_type: LessonType
+    download_url: str | None
+    description: str | None
+    is_published: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class LessonListResponse(BaseModel):
+    items: list[LessonListItemResponse]
+    page: int
+    page_size: int
+    total: int
+    pages: int
+    has_next: bool
+    has_previous: bool
+
+
+class CourseFilters(BaseModel):
+    search_query: str | None = None
+    min_price: float | None = None
+    max_price: float | None = None
+    sort: str | None = None

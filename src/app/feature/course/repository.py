@@ -1,8 +1,12 @@
-from sqlalchemy import func, or_, select
+from collections.abc import Sequence
+from typing import Any
+
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.feature.course.models import Course, Lesson
+from app.feature.course.schemas import CourseFilters
 from app.feature.user.models import User
 
 
@@ -45,33 +49,61 @@ async def get_all_courses(
     session: AsyncSession,
     page: int,
     page_size: int,
-    search_query: str | None = None,
-) -> tuple[list[Course], int]:
+    filters: CourseFilters,
+) -> tuple[Sequence[Any], Any | None]:
     offset = (page - 1) * page_size
 
-    filter_condition = None
-    search_query = search_query.strip() if search_query else None
+    filter_conditions = []
 
-    if search_query:
-        pattern = f"%{search_query}%"
-
-        filter_condition = or_(
-            Course.title.ilike(pattern),
-            Course.description.ilike(pattern),
-            Course.instructor.has(User.name.ilike(pattern)),
-            Course.instructor.has(User.surname.ilike(pattern)),
+    if filters.search_query:
+        pattern = f"%{filters.search_query.strip()}%"
+        filter_conditions.append(
+            or_(
+                Course.title.ilike(pattern),
+                Course.description.ilike(pattern),
+                Course.instructor.has(User.name.ilike(pattern)),
+                Course.instructor.has(User.surname.ilike(pattern)),
+            )
         )
 
+    if filters.min_price is not None:
+        filter_conditions.append(Course.price >= filters.min_price)
+
+    if filters.max_price is not None:
+        filter_conditions.append(Course.price <= filters.max_price)
+
+    sort_column = Course.id
+    sort_desc = False
+
+    if filters.sort:
+        sort_desc = filters.sort.startswith("-")
+        sort_field = filters.sort.removeprefix("-")
+
+        sort_mapping = {
+            "id": Course.id,
+            "title": Course.title,
+            "price": Course.price,
+            "created_at": Course.created_at,
+        }
+
+        if sort_field in sort_mapping:
+            sort_column = sort_mapping[sort_field]
+
     base_query = select(Course)
-    if filter_condition is not None:
-        base_query = base_query.where(filter_condition)
+
+    if filter_conditions:
+        base_query = base_query.where(and_(*filter_conditions))
 
     query = (
-        base_query.options(joinedload(Course.instructor), selectinload(Course.lessons))
-        .order_by(Course.id)
+        base_query.options(
+            joinedload(Course.instructor),
+            selectinload(Course.lessons),
+        )
+        .order_by(sort_column.desc() if sort_desc else sort_column.asc())
         .offset(offset)
         .limit(page_size)
     )
+
     result = await session.execute(query)
     courses = result.scalars().all()
 
@@ -79,3 +111,26 @@ async def get_all_courses(
     total = await session.scalar(count_stmt)
 
     return courses, total
+
+
+async def list_lessons(
+    session: AsyncSession,
+    course_id: int,
+    page: int,
+    size: int,
+) -> tuple[Sequence[Any], Any | None]:
+    total = await session.scalar(
+        select(func.count()).select_from(Lesson).where(Lesson.course_id == course_id)
+    )
+
+    query = (
+        select(Lesson)
+        .where(Lesson.course_id == course_id)
+        .order_by(Lesson.id)
+        .offset((page - 1) * size)
+        .limit(size)
+    )
+
+    lessons = (await session.scalars(query)).all()
+
+    return lessons, total
