@@ -143,7 +143,6 @@ class LessonListItemResponse(BaseModel):
     is_published: bool
     created_at: datetime
     updated_at: datetime
-    instructor: InstructorResponse
 
 
 class LessonListResponse(BaseModel):
