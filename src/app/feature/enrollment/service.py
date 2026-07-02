@@ -8,12 +8,16 @@ from app.feature.enrollment.repository import (
     create_enrollment,
     get_enrollment_by_id,
     get_enrollment_by_user_and_course,
+    get_enrollments_by_course,
     get_enrollments_by_user,
 )
 from app.feature.enrollment.schemas import (
+    CourseEnrollmentListResponse,
+    CourseEnrollmentResponse,
     CourseSummary,
     EnrollmentListResponse,
     EnrollmentResponse,
+    StudentSummary,
 )
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
@@ -111,4 +115,47 @@ async def get_enrollment_detail(
         created_at=enrollment.created_at,
         updated_at=enrollment.updated_at,
         course=CourseSummary.model_validate(enrollment.course),
+    )
+
+
+async def get_course_enrollments(
+    session: AsyncSession,
+    course_id: int,
+    instructor_id: int,
+    page: int,
+    page_size: int,
+) -> CourseEnrollmentListResponse:
+    course = await get_course_by_id(session, course_id)
+    if course is None:
+        raise LookupError("Course not found")
+
+    if course.instructor_id != instructor_id:
+        raise PermissionError(
+            "You do not have permission to view enrollments for this course"
+        )
+
+    enrollments, total = await get_enrollments_by_course(
+        session, course_id, page, page_size
+    )
+    pages = math.ceil(total / page_size) if total > 0 else 0
+
+    return CourseEnrollmentListResponse(
+        items=[
+            CourseEnrollmentResponse(
+                id=e.id,
+                user_id=e.user_id,
+                course_id=e.course_id,
+                status=e.status.value,
+                created_at=e.created_at,
+                updated_at=e.updated_at,
+                user=StudentSummary.model_validate(e.user),
+            )
+            for e in enrollments
+        ],
+        page=page,
+        page_size=page_size,
+        total=total,
+        pages=pages,
+        has_next=page < pages,
+        has_previous=page > 1,
     )
