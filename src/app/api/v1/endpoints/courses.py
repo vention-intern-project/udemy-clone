@@ -12,7 +12,8 @@ from app.feature.course.schemas import (
     DeleteMessageResponse,
     LessonCreateRequest,
     LessonResponse,
-    LessonListResponse
+    LessonListResponse,
+    CourseFilters,
 )
 from app.feature.course.service import (
     create_course,
@@ -34,10 +35,10 @@ router = APIRouter(prefix="/courses", tags=["courses"])
 async def list_courses(
     page: int = 1,
     page_size: int = 100,
-    query: str | None = None,
+    filters: CourseFilters = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
-    return await get_courses_list(session, page, page_size, query)
+    return await get_courses_list(session, page, page_size, filters)
 
 
 @router.post("", response_model=CourseResponse)
