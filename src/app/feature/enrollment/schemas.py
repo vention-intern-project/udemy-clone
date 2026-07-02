@@ -28,3 +28,13 @@ class EnrollmentResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     course: CourseSummary
+
+
+class EnrollmentListResponse(BaseModel):
+    items: list[EnrollmentResponse]
+    page: int
+    page_size: int
+    total: int
+    pages: int
+    has_next: bool
+    has_previous: bool
