@@ -22,6 +22,7 @@ from app.feature.course.schemas import (
     LessonUpdateRequest,
     LessonListItemResponse,
     LessonListResponse,
+    CourseFilters
 )
 
 
@@ -214,9 +215,9 @@ async def get_courses_list(
     session: AsyncSession,
     page: int,
     page_size: int,
-    search_query: str | None = None,
+    filters: CourseFilters,
 ) -> CourseListResponse:
-    courses, total = await get_all_courses(session, page, page_size, search_query)
+    courses, total = await get_all_courses(session, page, page_size, filters)
 
     pages = math.ceil(total / page_size)
 
