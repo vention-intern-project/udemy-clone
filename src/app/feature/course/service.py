@@ -11,13 +11,17 @@ from app.feature.course.repository import (
     get_course_by_id,
     get_course_with_lessons,
     get_lesson_by_id,
+    list_lessons,
 )
 from app.feature.course.schemas import (
     CourseCreateRequest,
+    CourseFilters,
     CourseListItemResponse,
     CourseListResponse,
     CourseUpdateRequest,
     LessonCreateRequest,
+    LessonListItemResponse,
+    LessonListResponse,
     LessonUpdateRequest,
 )
 
@@ -211,9 +215,9 @@ async def get_courses_list(
     session: AsyncSession,
     page: int,
     page_size: int,
-    search_query: str | None = None,
+    filters: CourseFilters,
 ) -> CourseListResponse:
-    courses, total = await get_all_courses(session, page, page_size, search_query)
+    courses, total = await get_all_courses(session, page, page_size, filters)
 
     pages = math.ceil(total / page_size)
 
@@ -221,6 +225,32 @@ async def get_courses_list(
         items=[CourseListItemResponse.model_validate(course) for course in courses],
         page=page,
         page_size=page_size,
+        total=total,
+        pages=pages,
+        has_next=page < pages,
+        has_previous=page > 1,
+    )
+
+
+async def get_list_lessons(
+    session: AsyncSession,
+    course_id: int,
+    page: int,
+    size: int,
+):
+    lessons, total = await list_lessons(
+        session,
+        course_id=course_id,
+        page=page,
+        size=size,
+    )
+
+    pages = math.ceil(total / size)
+
+    return LessonListResponse(
+        items=[LessonListItemResponse.model_validate(lesson) for lesson in lessons],
+        page=page,
+        page_size=size,
         total=total,
         pages=pages,
         has_next=page < pages,

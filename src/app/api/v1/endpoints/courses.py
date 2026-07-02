@@ -6,11 +6,13 @@ from app.db.database import get_db
 from app.feature.course.schemas import (
     CourseCreateRequest,
     CourseDetailResponse,
+    CourseFilters,
     CourseListResponse,
     CourseResponse,
     CourseUpdateRequest,
     DeleteMessageResponse,
     LessonCreateRequest,
+    LessonListResponse,
     LessonResponse,
 )
 from app.feature.course.service import (
@@ -20,6 +22,7 @@ from app.feature.course.service import (
     deleting_lesson,
     get_course_detail,
     get_courses_list,
+    get_list_lessons,
     update_course,
 )
 from app.feature.enrollment.schemas import CourseEnrollmentListResponse
@@ -34,10 +37,10 @@ router = APIRouter(prefix="/courses", tags=["courses"])
 async def list_courses(
     page: int = 1,
     page_size: int = 100,
-    query: str | None = None,
+    filters: CourseFilters = Depends(),
     session: AsyncSession = Depends(get_db),
 ):
-    return await get_courses_list(session, page, page_size, query)
+    return await get_courses_list(session, page, page_size, filters)
 
 
 @router.post("", response_model=CourseResponse)
@@ -63,6 +66,24 @@ async def creating_course(
         ) from None
 
     return course
+
+
+@router.get(
+    "/{course_id}/lessons",
+    response_model=LessonListResponse,
+)
+async def list_lessons(
+    course_id: int,
+    page: int = 1,
+    size: int = 100,
+    session: AsyncSession = Depends(get_db),
+):
+    return await get_list_lessons(
+        session,
+        course_id=course_id,
+        page=page,
+        size=size,
+    )
 
 
 @router.post("/{course_id}/lessons", response_model=LessonResponse)
