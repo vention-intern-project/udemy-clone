@@ -25,6 +25,8 @@ from app.feature.course.service import (
     get_list_lessons,
     update_course,
 )
+from app.feature.enrollment.schemas import CourseEnrollmentListResponse
+from app.feature.enrollment.service import get_course_enrollments
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
 
@@ -127,6 +129,32 @@ async def get_course(
         )
 
     return course
+
+
+@router.get("/{course_id}/enrollments", response_model=CourseEnrollmentListResponse)
+async def list_course_enrollments(
+    course_id: int,
+    page: int = 1,
+    page_size: int = 100,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await get_course_enrollments(
+            session, course_id, user_id, page, page_size
+        )
+    except LookupError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from None
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    return result
 
 
 @router.patch("/{course_id}", response_model=CourseResponse)

@@ -4,6 +4,7 @@ from decimal import Decimal
 import factory
 
 from app.feature.course.models import Course, Lesson, LessonType
+from app.feature.enrollment.models import Enrollment, EnrollmentStatus
 from app.feature.user.models import User, UserRole
 
 
@@ -48,5 +49,19 @@ class LessonFactory(factory.Factory):
     file_url = None
     description = None
     is_published = True
+    created_at = datetime(2026, 1, 1, tzinfo=UTC)
+    updated_at = datetime(2026, 1, 1, tzinfo=UTC)
+
+
+class EnrollmentFactory(factory.Factory):
+    class Meta:
+        model = Enrollment
+
+    id = factory.Sequence(lambda n: n + 1)
+    user = factory.SubFactory(UserFactory)
+    user_id = factory.LazyAttribute(lambda o: o.user.id)
+    course = factory.SubFactory(CourseFactory)
+    course_id = factory.LazyAttribute(lambda o: o.course.id)
+    status = EnrollmentStatus.ACTIVE
     created_at = datetime(2026, 1, 1, tzinfo=UTC)
     updated_at = datetime(2026, 1, 1, tzinfo=UTC)
