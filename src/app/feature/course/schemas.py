@@ -161,3 +161,4 @@ class CourseFilters(BaseModel):
     search_query: Optional[str] = None
     min_price: Optional[float] = None
     max_price: Optional[float] = None
+    sort: Optional[str] = None
