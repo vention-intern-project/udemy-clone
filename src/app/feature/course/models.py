@@ -52,6 +52,7 @@ class Course(Base):
     published_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
+        server_default=func.now(),
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
