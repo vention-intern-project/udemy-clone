@@ -6,6 +6,7 @@ from app.feature.course.repository import get_course_by_id
 from app.feature.enrollment.models import EnrollmentStatus
 from app.feature.enrollment.repository import (
     create_enrollment,
+    get_enrollment_by_id,
     get_enrollment_by_user_and_course,
     get_enrollments_by_user,
 )
@@ -86,4 +87,28 @@ async def get_my_enrollments(
         pages=pages,
         has_next=page < pages,
         has_previous=page > 1,
+    )
+
+
+async def get_enrollment_detail(
+    session: AsyncSession,
+    enrollment_id: int,
+    user_id: int,
+) -> EnrollmentResponse:
+    enrollment = await get_enrollment_by_id(session, enrollment_id)
+
+    if enrollment is None:
+        raise LookupError("Enrollment not found")
+
+    if enrollment.user_id != user_id:
+        raise PermissionError("You do not have access to this enrollment")
+
+    return EnrollmentResponse(
+        id=enrollment.id,
+        user_id=enrollment.user_id,
+        course_id=enrollment.course_id,
+        status=enrollment.status.value,
+        created_at=enrollment.created_at,
+        updated_at=enrollment.updated_at,
+        course=CourseSummary.model_validate(enrollment.course),
     )
