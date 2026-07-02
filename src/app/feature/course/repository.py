@@ -1,3 +1,5 @@
+from typing import Any, Sequence
+
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
@@ -46,7 +48,7 @@ async def get_all_courses(
     page: int,
     page_size: int,
     search_query: str | None = None,
-) -> tuple[list[Course], int]:
+) -> tuple[Sequence[Any], Any | None]:
     offset = (page - 1) * page_size
 
     filter_condition = None
@@ -79,3 +81,27 @@ async def get_all_courses(
     total = await session.scalar(count_stmt)
 
     return courses, total
+
+async def list_lessons(
+        session: AsyncSession,
+        course_id: int,
+        page: int,
+        size: int,
+) -> tuple[Sequence[Any], Any | None]:
+    total = await session.scalar(
+        select(func.count())
+        .select_from(Lesson)
+        .where(Lesson.course_id == course_id)
+    )
+
+    query = (
+        select(Lesson)
+        .where(Lesson.course_id == course_id)
+        .order_by(Lesson.id)
+        .offset((page - 1) * size)
+        .limit(size)
+    )
+
+    lessons = (await session.scalars(query)).all()
+
+    return lessons, total
