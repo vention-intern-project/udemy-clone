@@ -270,7 +270,7 @@ async def completing_lesson(
     "/{course_id}/lessons/{lesson_id}/incomplete",
     response_model=LessonProgressResponse,
 )
-async def completing_lesson(
+async def make_incomplete_lesson(
     course_id: int,
     lesson_id: int,
     user_id: int = Depends(get_current_user_id),
