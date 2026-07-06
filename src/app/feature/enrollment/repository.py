@@ -1,12 +1,11 @@
+from datetime import datetime
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.feature.enrollment.models import Enrollment, EnrollmentStatus
-from app.feature.enrollment.models import LessonProgress
 from app.feature.course.models import Lesson
-
-from datetime import datetime
+from app.feature.enrollment.models import Enrollment, EnrollmentStatus, LessonProgress
 
 
 async def create_enrollment(

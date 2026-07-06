@@ -2,28 +2,32 @@ import math
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.feature.course.repository import get_course_by_id, get_lesson_by_id, count_course_lessons
+from app.feature.course.repository import (
+    count_course_lessons,
+    get_course_by_id,
+    get_lesson_by_id,
+)
 from app.feature.enrollment.models import EnrollmentStatus
 from app.feature.enrollment.repository import (
+    complete_progress,
+    count_completed_lessons,
     create_enrollment,
+    create_progress,
     get_enrollment_by_id,
     get_enrollment_by_user_and_course,
     get_enrollments_by_course,
     get_enrollments_by_user,
     get_progress,
-    complete_progress,
     incomplete_progress,
-    count_completed_lessons,
-    create_progress,
 )
 from app.feature.enrollment.schemas import (
     CourseEnrollmentListResponse,
     CourseEnrollmentResponse,
+    CourseProgressResponse,
     CourseSummary,
     EnrollmentListResponse,
     EnrollmentResponse,
     StudentSummary,
-    CourseProgressResponse,
 )
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
@@ -241,7 +245,9 @@ async def course_progress(
 
     total_lessons = await count_course_lessons(session, course_id)
 
-    total_completed_lessons = await count_completed_lessons(session, student_id, course_id)
+    total_completed_lessons = await count_completed_lessons(
+        session, student_id, course_id
+    )
 
     percentage = (
         0

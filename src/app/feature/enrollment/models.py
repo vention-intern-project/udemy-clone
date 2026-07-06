@@ -69,15 +69,11 @@ class LessonProgress(Base):
     completed: Mapped[bool] = mapped_column(default=False)
 
     completed_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now()
+        DateTime(timezone=True), server_default=func.now()
     )
-
 
     student: Mapped["User"] = relationship()
 
     lesson: Mapped["Lesson"] = relationship()
 
-    __table_args__ = (
-        UniqueConstraint("student_id", "lesson_id"),
-    )
+    __table_args__ = (UniqueConstraint("student_id", "lesson_id"),)

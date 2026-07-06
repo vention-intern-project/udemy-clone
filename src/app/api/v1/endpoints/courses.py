@@ -25,8 +25,16 @@ from app.feature.course.service import (
     get_list_lessons,
     update_course,
 )
-from app.feature.enrollment.schemas import CourseEnrollmentListResponse, LessonProgressResponse, CourseProgressResponse
-from app.feature.enrollment.service import get_course_enrollments, complete_lesson, course_progress
+from app.feature.enrollment.schemas import (
+    CourseEnrollmentListResponse,
+    CourseProgressResponse,
+    LessonProgressResponse,
+)
+from app.feature.enrollment.service import (
+    complete_lesson,
+    course_progress,
+    get_course_enrollments,
+)
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
 
@@ -268,10 +276,10 @@ async def get_progress(
 ):
     try:
         course_progress_bar = await course_progress(
-        session,
-        user_id,
-        course_id,
-    )
+            session,
+            user_id,
+            course_id,
+        )
     except LookupError as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
