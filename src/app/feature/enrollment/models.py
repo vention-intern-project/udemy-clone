@@ -5,7 +5,7 @@ from sqlalchemy import DateTime, Enum, ForeignKey, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.feature.course.models import Course
+from app.feature.course.models import Course, Lesson
 from app.feature.user.models import User
 
 
@@ -49,3 +49,37 @@ class Enrollment(Base):
 
     user: Mapped["User"] = relationship()
     course: Mapped["Course"] = relationship()
+
+
+class LessonProgress(Base):
+    __tablename__ = "lesson_progress"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    student_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", index=True, ondelete="CASCADE")
+    )
+
+    lesson_id: Mapped[int] = mapped_column(
+        ForeignKey("lessons.id", index=True, ondelete="CASCADE")
+    )
+
+    completed: Mapped[bool] = mapped_column(default=False)
+
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+
+    student: Mapped["User"] = relationship(
+        back_populates="lesson_progress"
+    )
+
+    lesson: Mapped["Lesson"] = relationship(
+        back_populates="progress"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("student_id", "lesson_id"),
+    )
