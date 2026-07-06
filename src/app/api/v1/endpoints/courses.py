@@ -231,6 +231,7 @@ async def dlt_lesson(
     response_model=LessonProgressResponse,
 )
 async def completing_lesson(
+    course_id: int,
     lesson_id: int,
     user_id: int = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_db),
@@ -239,6 +240,7 @@ async def completing_lesson(
         session,
         user_id,
         lesson_id,
+        course_id,
     )
 
 

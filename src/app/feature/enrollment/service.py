@@ -171,6 +171,7 @@ async def complete_lesson(
     session: AsyncSession,
     student_id: int,
     lesson_id: int,
+    course_id: int,
 ):
 
     lesson = await get_lesson_by_id(session, lesson_id)
@@ -178,7 +179,10 @@ async def complete_lesson(
     if lesson is None:
         raise LookupError("Lesson not found")
 
-    enrollment = await get_enrollment_by_user_and_course(session, student_id, lesson.course_id)
+    if lesson.course.id != course_id:
+        raise PermissionError("This lesson does not belong to this course.")
+
+    enrollment = await get_enrollment_by_user_and_course(session, student_id, course_id)
 
     if enrollment is None:
         raise LookupError("Enrollment not found")
@@ -198,6 +202,7 @@ async def incomplete_lesson(
     session: AsyncSession,
     student_id: int,
     lesson_id: int,
+    course_id: int,
 ):
 
     lesson = await get_lesson_by_id(session, lesson_id)
@@ -205,7 +210,10 @@ async def incomplete_lesson(
     if lesson is None:
         raise LookupError("Lesson not found")
 
-    enrollment = await get_enrollment_by_user_and_course(session, student_id, lesson.course_id)
+    if lesson.course.id != course_id:
+        raise PermissionError("This lesson does not belong to this course.")
+
+    enrollment = await get_enrollment_by_user_and_course(session, student_id, course_id)
 
     if enrollment is None:
         raise LookupError("Enrollment not found")
