@@ -34,6 +34,7 @@ from app.feature.enrollment.service import (
     complete_lesson,
     course_progress,
     get_course_enrollments,
+    incomplete_lesson,
 )
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
@@ -246,6 +247,37 @@ async def completing_lesson(
 ):
     try:
         lesson_progress = await complete_lesson(
+            session,
+            user_id,
+            lesson_id,
+            course_id,
+        )
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+    except LookupError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    return lesson_progress
+
+
+@router.post(
+    "/{course_id}/lessons/{lesson_id}/incomplete",
+    response_model=LessonProgressResponse,
+)
+async def completing_lesson(
+    course_id: int,
+    lesson_id: int,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        lesson_progress = await incomplete_lesson(
             session,
             user_id,
             lesson_id,
