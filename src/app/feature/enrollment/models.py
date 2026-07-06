@@ -74,13 +74,9 @@ class LessonProgress(Base):
     )
 
 
-    student: Mapped["User"] = relationship(
-        back_populates="lesson_progress"
-    )
+    student: Mapped["User"] = relationship()
 
-    lesson: Mapped["Lesson"] = relationship(
-        back_populates="progress"
-    )
+    lesson: Mapped["Lesson"] = relationship()
 
     __table_args__ = (
         UniqueConstraint("student_id", "lesson_id"),
