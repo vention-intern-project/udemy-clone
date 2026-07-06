@@ -25,8 +25,8 @@ from app.feature.course.service import (
     get_list_lessons,
     update_course,
 )
-from app.feature.enrollment.schemas import CourseEnrollmentListResponse
-from app.feature.enrollment.service import get_course_enrollments
+from app.feature.enrollment.schemas import CourseEnrollmentListResponse, LessonProgressResponse, CourseProgressResponse
+from app.feature.enrollment.service import get_course_enrollments, complete_lesson, course_progress
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
 
@@ -224,3 +224,35 @@ async def dlt_lesson(
         ) from None
 
     return DeleteMessageResponse(message=message)
+
+
+@router.post(
+    "/{course_id}/lessons/{lesson_id}/complete",
+    response_model=LessonProgressResponse,
+)
+async def completing_lesson(
+    lesson_id: int,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    return await complete_lesson(
+        session,
+        user_id,
+        lesson_id,
+    )
+
+
+@router.get(
+    "/{course_id}/progress",
+    response_model=CourseProgressResponse,
+)
+async def get_progress(
+    course_id: int,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    return await course_progress(
+        session,
+        user_id,
+        course_id,
+    )
