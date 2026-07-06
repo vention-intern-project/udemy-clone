@@ -236,12 +236,25 @@ async def completing_lesson(
     user_id: int = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_db),
 ):
-    return await complete_lesson(
-        session,
-        user_id,
-        lesson_id,
-        course_id,
-    )
+    try:
+        lesson_progress = await complete_lesson(
+            session,
+            user_id,
+            lesson_id,
+            course_id,
+        )
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+    except LookupError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    return lesson_progress
 
 
 @router.get(
@@ -253,8 +266,16 @@ async def get_progress(
     user_id: int = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_db),
 ):
-    return await course_progress(
+    try:
+        course_progress_bar = await course_progress(
         session,
         user_id,
         course_id,
     )
+    except LookupError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    return course_progress_bar
