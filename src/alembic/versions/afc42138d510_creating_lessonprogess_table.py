@@ -1,8 +1,8 @@
 """creating LessonProgess table
 
-Revision ID: 05d1349b9c0c
+Revision ID: afc42138d510
 Revises: ec13af1d6f2e
-Create Date: 2026-07-06 19:27:15.377963
+Create Date: 2026-07-06 21:04:40.632748
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '05d1349b9c0c'
+revision: str = 'afc42138d510'
 down_revision: Union[str, Sequence[str], None] = 'ec13af1d6f2e'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
