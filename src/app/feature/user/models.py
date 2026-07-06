@@ -7,8 +7,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
-from app.feature.enrollment.models import LessonProgress
-
 
 class UserRole(enum.StrEnum):
     STUDENT = "student"
@@ -33,11 +31,6 @@ class User(Base):
     phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-
-    lesson_progress: Mapped[list["LessonProgress"]] = relationship(
-        back_populates="student",
-        cascade="all, delete-orphan",
     )
 
 

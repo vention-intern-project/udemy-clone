@@ -19,8 +19,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 from app.feature.user.models import User
 
-from app.feature.enrollment.models import LessonProgress
-
 
 class LessonType(enum.StrEnum):
     VIDEO = "video"
@@ -111,11 +109,6 @@ class Lesson(Base):
     )
 
     course: Mapped["Course"] = relationship(back_populates="lessons")
-
-    progress: Mapped[list["LessonProgress"]] = relationship(
-        back_populates="lesson",
-        cascade="all, delete-orphan",
-    )
 
     @property
     def download_url(self) -> str | None:
