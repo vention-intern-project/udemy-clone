@@ -69,3 +69,18 @@ class CourseEnrollmentListResponse(BaseModel):
     pages: int
     has_next: bool
     has_previous: bool
+
+
+class LessonProgressResponse(BaseModel):
+    lesson_id: int
+    completed: bool
+    completed_at: datetime | None
+
+    model_config = {"from_attributes": True}
+
+
+class CourseProgressResponse(BaseModel):
+    course_id: int
+    completed_lessons: int
+    total_lessons: int
+    progress_percentage: float

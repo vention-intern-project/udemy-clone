@@ -1,8 +1,11 @@
+from datetime import datetime
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.feature.enrollment.models import Enrollment, EnrollmentStatus
+from app.feature.course.models import Lesson
+from app.feature.enrollment.models import Enrollment, EnrollmentStatus, LessonProgress
 
 
 async def create_enrollment(
@@ -104,3 +107,108 @@ async def get_enrollments_by_course(
     total = await session.scalar(count_stmt)
 
     return enrollments, total
+
+
+async def get_progress(
+    session: AsyncSession,
+    student_id: int,
+    lesson_id: int,
+) -> LessonProgress | None:
+    stmt = select(LessonProgress).where(
+        LessonProgress.student_id == student_id,
+        LessonProgress.lesson_id == lesson_id,
+    )
+
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def create_progress(
+    session: AsyncSession,
+    student_id: int,
+    lesson_id: int,
+) -> LessonProgress:
+
+    progress = LessonProgress(
+        student_id=student_id,
+        lesson_id=lesson_id,
+        completed=True,
+        completed_at=datetime.utcnow(),
+    )
+
+    session.add(progress)
+    await session.commit()
+    await session.refresh(progress)
+
+    return progress
+
+
+async def complete_progress(
+    session: AsyncSession,
+    progress: LessonProgress,
+) -> LessonProgress:
+
+    progress.completed = True
+    progress.completed_at = datetime.utcnow()
+
+    await session.commit()
+    await session.refresh(progress)
+
+    return progress
+
+
+async def incomplete_progress(
+    session: AsyncSession,
+    progress: LessonProgress,
+) -> LessonProgress:
+
+    progress.completed = False
+    progress.completed_at = datetime.utcnow()
+
+    await session.commit()
+    await session.refresh(progress)
+
+    return progress
+
+
+async def count_completed_lessons(
+    session: AsyncSession,
+    student_id: int,
+    course_id: int,
+) -> int:
+
+    stmt = (
+        select(func.count())
+        .select_from(LessonProgress)
+        .join(Lesson)
+        .where(
+            Lesson.course_id == course_id,
+            LessonProgress.student_id == student_id,
+            LessonProgress.completed.is_(True),
+        )
+    )
+
+    result = await session.execute(stmt)
+
+    return result.scalar_one()
+
+
+async def completed_lessons(
+    session: AsyncSession,
+    student_id: int,
+    course_id: int,
+) -> list[int]:
+
+    stmt = (
+        select(LessonProgress.lesson_id)
+        .join(Lesson)
+        .where(
+            Lesson.course_id == course_id,
+            LessonProgress.student_id == student_id,
+            LessonProgress.completed.is_(True),
+        )
+    )
+
+    result = await session.execute(stmt)
+
+    return list(result.scalars())

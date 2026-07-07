@@ -134,3 +134,11 @@ async def list_lessons(
     lessons = (await session.scalars(query)).all()
 
     return lessons, total
+
+
+async def count_course_lessons(session: AsyncSession, course_id: int) -> int:
+    total = await session.scalar(
+        select(func.count()).select_from(Lesson).where(Lesson.course_id == course_id)
+    )
+
+    return total
