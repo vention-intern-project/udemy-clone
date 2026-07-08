@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.v1.endpoints.media import router as media_router
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.feature.chat.agent import create_chat_agent
 
 media_root = Path(settings.MEDIA_ROOT)
 (media_root / "lessons" / "video").mkdir(parents=True, exist_ok=True)
@@ -15,6 +16,7 @@ media_root = Path(settings.MEDIA_ROOT)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    app.state.agent = create_chat_agent()
     yield
 
 
