@@ -1,7 +1,7 @@
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import DateTime, Enum, ForeignKey, UniqueConstraint, func
-
 from datetime import datetime
+
+from sqlalchemy import DateTime, ForeignKey, UniqueConstraint, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
@@ -28,7 +28,6 @@ class Cart(Base):
         onupdate=func.now(),
     )
 
-    student: Mapped["User"] = relationship(back_populates="cart")
     items: Mapped[list["CartItem"]] = relationship(
         back_populates="cart",
         cascade="all, delete-orphan",
@@ -40,22 +39,15 @@ class CartItem(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    cart_id: Mapped[int] = mapped_column(
-        ForeignKey("carts.id", ondelete="CASCADE")
-    )
+    cart_id: Mapped[int] = mapped_column(ForeignKey("carts.id", ondelete="CASCADE"))
 
-    course_id: Mapped[int] = mapped_column(
-        ForeignKey("courses.id", ondelete="CASCADE")
-    )
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id", ondelete="CASCADE"))
 
     added_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
     )
 
-    __table_args__ = (
-        UniqueConstraint("cart_id", "course_id"),
-    )
+    __table_args__ = (UniqueConstraint("cart_id", "course_id"),)
 
     cart: Mapped["Cart"] = relationship(back_populates="items")
-    course: Mapped["Course"] = relationship(back_populates="cart_items")
