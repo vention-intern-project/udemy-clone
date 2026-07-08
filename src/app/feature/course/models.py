@@ -73,6 +73,10 @@ class Course(Base):
         cascade="all, delete-orphan",
     )
 
+    cart_items: Mapped[list["CartItem"]] = relationship(
+        back_populates="course"
+    )
+
 
 class Lesson(Base):
     __tablename__ = "lessons"
