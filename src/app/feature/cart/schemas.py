@@ -4,6 +4,11 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
 
+class CheckoutResponse(BaseModel):
+    message: str
+    enrolled_courses: int
+
+
 class CartItemAdd(BaseModel):
     course_id: int
 
