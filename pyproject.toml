@@ -23,6 +23,7 @@ dependencies = [
     "langchain-openai>=0.2",
     "pymupdf>=1.24",
     "langgraph-prebuilt>=1.1.0",
+    "aiofiles>=24.1.0",
 ]
 
 [dependency-groups]
