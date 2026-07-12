@@ -1,6 +1,7 @@
 import aiofiles
 from langchain_core.tools import tool
 
+from app.feature.knowledge.generation import generate_quiz, generate_summary
 from app.feature.knowledge.index import (
     get_course_index_path,
     get_lesson_path,
@@ -59,4 +60,52 @@ async def read_lesson(course_id: int, lesson_id: int) -> str:
     return result
 
 
-KNOWLEDGE_TOOLS = [list_courses, list_lessons, read_lesson]
+@tool
+async def quiz_lesson(course_id: int, lesson_id: int) -> str:
+    """Generate a 3-question practice quiz for a lesson."""
+    lesson_path = get_lesson_path(course_id, lesson_id)
+    if not lesson_path.exists():
+        return f"Lesson {lesson_id} in course {course_id} not found."
+
+    async with aiofiles.open(lesson_path) as f:
+        content = await f.read()
+
+    questions = await generate_quiz(content)
+
+    lines = []
+    for i, q in enumerate(questions, 1):
+        lines.append(f"**Q{i}. {q['question']}**")
+        for opt in q["options"]:
+            lines.append(f"  {opt}")
+        lines.append(f"  Answer: {q['correct_answer']}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+@tool
+async def summarize_lesson(course_id: int, lesson_id: int) -> str:
+    """Generate a summary with paragraph and key takeaways for a lesson."""
+    lesson_path = get_lesson_path(course_id, lesson_id)
+    if not lesson_path.exists():
+        return f"Lesson {lesson_id} in course {course_id} not found."
+
+    async with aiofiles.open(lesson_path) as f:
+        content = await f.read()
+
+    summary = await generate_summary(content)
+
+    lines = [summary["paragraph"], "", "**Key Takeaways:**"]
+    for bullet in summary["bullets"]:
+        lines.append(f"- {bullet}")
+
+    return "\n".join(lines)
+
+
+KNOWLEDGE_TOOLS = [
+    list_courses,
+    list_lessons,
+    read_lesson,
+    quiz_lesson,
+    summarize_lesson,
+]

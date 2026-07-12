@@ -4,6 +4,7 @@ import aiofiles
 
 from app.core.config import settings
 from app.feature.knowledge.extraction import extract_text
+from app.feature.knowledge.generation import generate_metadata
 from app.feature.knowledge.index import (
     ensure_directories,
     get_course_index_path,
@@ -15,7 +16,6 @@ from app.feature.knowledge.index import (
     update_course_index,
     update_general_index,
 )
-from app.feature.knowledge.metadata import generate_metadata
 
 
 def get_file_path(file_url: str) -> Path:
