@@ -16,7 +16,10 @@ media_root = Path(settings.MEDIA_ROOT)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.agent = create_chat_agent()
+    try:
+        app.state.agent = create_chat_agent()
+    except Exception:
+        app.state.agent = None
     yield
 
 
