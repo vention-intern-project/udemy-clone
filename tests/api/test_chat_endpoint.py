@@ -8,7 +8,7 @@ client = TestClient(app)
 class TestChatEndpoint:
     def test_chat_endpoint_exists(self):
         response = client.post(
-            "/api/v1/chat/",
+            "/chat/",
             json={
                 "thread_id": "test-thread-123",
                 "course_id": 1,
@@ -20,7 +20,7 @@ class TestChatEndpoint:
 
     def test_chat_endpoint_validation_error(self):
         response = client.post(
-            "/api/v1/chat/",
+            "/chat/",
             json={
                 "thread_id": "test-thread-123",
             },
@@ -29,7 +29,7 @@ class TestChatEndpoint:
 
     def test_chat_endpoint_missing_thread_id(self):
         response = client.post(
-            "/api/v1/chat/",
+            "/chat/",
             json={
                 "course_id": 1,
                 "lesson_id": 1,
