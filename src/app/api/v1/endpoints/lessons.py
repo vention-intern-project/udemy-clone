@@ -1,4 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import get_current_user_id
@@ -10,6 +17,7 @@ from app.feature.course.service import (
     update_lesson,
     upload_lesson_file,
 )
+from app.feature.knowledge.service import process_lesson_upload
 
 router = APIRouter(prefix="/lessons", tags=["lessons"])
 
@@ -58,6 +66,7 @@ async def patch_lesson(
 async def upload_file(
     lesson_id: int,
     file: UploadFile,
+    background_tasks: BackgroundTasks,
     user_id: int = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_db),
 ):
@@ -103,5 +112,16 @@ async def upload_file(
 
     if old_file_url:
         delete_file(old_file_url)
+
+    background_tasks.add_task(
+        process_lesson_upload,
+        course_id=lesson.course_id,
+        lesson_id=lesson_id,
+        lesson_title=lesson.title,
+        lesson_type=lesson_type,
+        file_url=file_url,
+        course_title=lesson.course.title,
+        description=lesson.description,
+    )
 
     return updated_lesson
