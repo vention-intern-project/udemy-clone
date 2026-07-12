@@ -25,8 +25,17 @@ from app.feature.course.service import (
     get_list_lessons,
     update_course,
 )
-from app.feature.enrollment.schemas import CourseEnrollmentListResponse
-from app.feature.enrollment.service import get_course_enrollments
+from app.feature.enrollment.schemas import (
+    CourseEnrollmentListResponse,
+    CourseProgressResponse,
+    LessonProgressResponse,
+)
+from app.feature.enrollment.service import (
+    complete_lesson,
+    course_progress,
+    get_course_enrollments,
+    incomplete_lesson,
+)
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
 
@@ -224,3 +233,89 @@ async def dlt_lesson(
         ) from None
 
     return DeleteMessageResponse(message=message)
+
+
+@router.post(
+    "/{course_id}/lessons/{lesson_id}/complete",
+    response_model=LessonProgressResponse,
+)
+async def completing_lesson(
+    course_id: int,
+    lesson_id: int,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        lesson_progress = await complete_lesson(
+            session,
+            user_id,
+            lesson_id,
+            course_id,
+        )
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+    except LookupError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    return lesson_progress
+
+
+@router.post(
+    "/{course_id}/lessons/{lesson_id}/incomplete",
+    response_model=LessonProgressResponse,
+)
+async def make_incomplete_lesson(
+    course_id: int,
+    lesson_id: int,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        lesson_progress = await incomplete_lesson(
+            session,
+            user_id,
+            lesson_id,
+            course_id,
+        )
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+    except LookupError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    return lesson_progress
+
+
+@router.get(
+    "/{course_id}/progress",
+    response_model=CourseProgressResponse,
+)
+async def get_progress(
+    course_id: int,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        course_progress_bar = await course_progress(
+            session,
+            user_id,
+            course_id,
+        )
+    except LookupError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    return course_progress_bar
