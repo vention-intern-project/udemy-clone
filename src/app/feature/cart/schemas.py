@@ -4,6 +4,10 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
 
+class CartItemAdd(BaseModel):
+    course_id: int
+
+
 class CourseSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
