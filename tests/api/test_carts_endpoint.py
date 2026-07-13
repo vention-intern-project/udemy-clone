@@ -248,3 +248,50 @@ def test_add_course_requires_auth():
 
     assert response.status_code == 401
     assert response.json() == {"detail": "Could not validate credentials"}
+
+
+# --- DELETE /cart/items/{course_id} ---
+
+
+@pytest.fixture
+def mock_remove_from_cart_service(monkeypatch):
+    mock = AsyncMock()
+    monkeypatch.setattr(carts, "remove_from_cart", mock)
+    return mock
+
+
+def test_remove_course_from_cart(client, mock_remove_from_cart_service):
+    mock_remove_from_cart_service.return_value = None
+
+    response = client.delete(
+        "/cart/items/1",
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 204
+
+
+def test_remove_course_not_in_cart(client, mock_remove_from_cart_service):
+    mock_remove_from_cart_service.side_effect = LookupError("Course not in cart")
+
+    response = client.delete(
+        "/cart/items/999",
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Course not in cart"}
+
+
+def test_remove_course_requires_auth():
+    async def override_get_db():
+        yield AsyncMock()
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides.pop(get_current_user_id, None)
+    with TestClient(app) as c:
+        response = c.delete("/cart/items/1")
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Could not validate credentials"}
