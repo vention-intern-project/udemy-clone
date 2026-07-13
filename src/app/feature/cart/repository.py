@@ -60,3 +60,11 @@ async def remove_cart_item(session: AsyncSession, cart_id: int, course_id: int) 
     if cart_item:
         await session.delete(cart_item)
         await session.commit()
+
+
+async def clear_cart(session: AsyncSession, cart_id: int) -> None:
+    result = await session.execute(select(CartItem).where(CartItem.cart_id == cart_id))
+    cart_items = result.scalars().all()
+    for item in cart_items:
+        await session.delete(item)
+    await session.commit()
