@@ -7,9 +7,11 @@ from app.feature.enrollment.models import Enrollment
 
 
 async def get_or_create_cart(session: AsyncSession, student_id: int) -> Cart:
-    result = await session.execute(select(Cart).where(Cart.student_id == student_id).options(
-                selectinload(Cart.items).selectinload(CartItem.course)
-            ))
+    result = await session.execute(
+        select(Cart)
+        .where(Cart.student_id == student_id)
+        .options(selectinload(Cart.items).selectinload(CartItem.course))
+    )
     cart = result.scalar_one_or_none()
 
     if cart is None:
@@ -22,17 +24,20 @@ async def get_or_create_cart(session: AsyncSession, student_id: int) -> Cart:
 
 
 async def get_only_cart(session: AsyncSession, student_id: int) -> Cart | None:
-    result = await session.execute(select(Cart).where(Cart.student_id == student_id).options(
-                selectinload(Cart.items).selectinload(CartItem.course)
-            ))
+    result = await session.execute(
+        select(Cart)
+        .where(Cart.student_id == student_id)
+        .options(selectinload(Cart.items).selectinload(CartItem.course))
+    )
     cart = result.scalar_one_or_none()
 
     return cart
 
+
 async def enrollment_exists(
-        session: AsyncSession,
-        student_id: int,
-        course_id: int,
+    session: AsyncSession,
+    student_id: int,
+    course_id: int,
 ) -> bool:
     stmt = select(Enrollment).where(
         Enrollment.user_id == student_id,

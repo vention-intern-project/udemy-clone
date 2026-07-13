@@ -1,23 +1,30 @@
 from decimal import Decimal
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from fastapi import HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.feature.cart.repository import (
     add_cart_item,
     clear_cart,
+    enrollment_exists,
     get_cart_item,
     get_cart_items,
+    get_only_cart,
     get_or_create_cart,
     remove_cart_item,
-    get_only_cart,
-    enrollment_exists,
 )
-from app.feature.cart.schemas import CartItemResponse, CartResponse, CourseSummary, CheckoutResponse
+from app.feature.cart.schemas import (
+    CartItemResponse,
+    CartResponse,
+    CheckoutResponse,
+    CourseSummary,
+)
 from app.feature.course.repository import get_course_by_id
-from app.feature.enrollment.repository import get_enrollment_by_user_and_course, create_enrollment
 from app.feature.enrollment.models import EnrollmentStatus
+from app.feature.enrollment.repository import (
+    create_enrollment,
+    get_enrollment_by_user_and_course,
+)
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
 
@@ -106,10 +113,8 @@ async def clear_cart_items(session: AsyncSession, user_id: int) -> None:
     cart = await get_or_create_cart(session, user_id)
     await clear_cart(session, cart.id)
 
-async def checkout(
-        session: AsyncSession,
-        user_id: int
-) -> CheckoutResponse:
+
+async def checkout(session: AsyncSession, user_id: int) -> CheckoutResponse:
 
     cart = await get_only_cart(session, user_id)
 
@@ -123,7 +128,6 @@ async def checkout(
 
     try:
         for item in cart.items:
-
             already_enrolled = await enrollment_exists(
                 session,
                 user_id,
@@ -134,10 +138,7 @@ async def checkout(
                 continue
 
             await create_enrollment(
-                session,
-                user_id,
-                item.course_id,
-                EnrollmentStatus.ACTIVE
+                session, user_id, item.course_id, EnrollmentStatus.ACTIVE
             )
 
             enrolled += 1
