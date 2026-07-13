@@ -24,6 +24,7 @@ from app.feature.course.schemas import (
     LessonListResponse,
     LessonUpdateRequest,
 )
+from app.feature.knowledge.service import process_lesson_delete
 
 
 async def create_course(
@@ -205,6 +206,8 @@ async def deleting_lesson(
 
     if lesson.file_url:
         delete_file(lesson.file_url)
+
+    await process_lesson_delete(lesson.course_id, lesson.id)
 
     await delete_lesson(session, lesson)
 
