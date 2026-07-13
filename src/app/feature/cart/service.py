@@ -10,7 +10,7 @@ from app.feature.cart.repository import (
     get_or_create_cart,
     remove_cart_item,
 )
-from app.feature.cart.schemas import CartItemResponse, CartResponse, CourseSummary
+from app.feature.cart.schemas import CartItemResponse, CartResponse, CourseSummary, CheckoutResponse
 from app.feature.course.repository import get_course_by_id
 from app.feature.enrollment.repository import get_enrollment_by_user_and_course
 from app.feature.user.models import UserRole
@@ -100,3 +100,49 @@ async def remove_from_cart(session: AsyncSession, user_id: int, course_id: int) 
 async def clear_cart_items(session: AsyncSession, user_id: int) -> None:
     cart = await get_or_create_cart(session, user_id)
     await clear_cart(session, cart.id)
+
+async def checkout(
+        session: AsyncSession,
+        user_id: int
+) -> CheckoutResponse:
+
+    cart = await get_cart_items(session, user_id)
+
+    if cart is None or not cart.items:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cart is empty.",
+        )
+
+    enrolled = 0
+
+    try:
+        for item in cart.items:
+
+            already_enrolled = await self.repository.enrollment_exists(
+                student.id,
+                item.course_id,
+            )
+
+            if already_enrolled:
+                continue
+
+            await self.repository.create_enrollment(
+                student.id,
+                item.course_id,
+            )
+
+            enrolled += 1
+
+        await self.repository.clear_cart(cart)
+
+        await self.session.commit()
+
+    except Exception:
+        await self.session.rollback()
+        raise
+
+    return CheckoutResponse(
+        message="Checkout successful.",
+        enrolled_courses=enrolled,
+    )

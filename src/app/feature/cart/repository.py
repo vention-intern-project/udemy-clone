@@ -20,6 +20,15 @@ async def get_or_create_cart(session: AsyncSession, student_id: int) -> Cart:
 
     return cart
 
+
+async def get_only_cart(session: AsyncSession, student_id: int) -> Cart | None:
+    result = await session.execute(select(Cart).where(Cart.student_id == student_id).options(
+                selectinload(Cart.items).selectinload(CartItem.course)
+            ))
+    cart = result.scalar_one_or_none()
+
+    return cart
+
 async def enrollment_exists(
         session: AsyncSession,
         student_id: int,
