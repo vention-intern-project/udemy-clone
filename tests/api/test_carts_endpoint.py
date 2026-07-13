@@ -295,3 +295,38 @@ def test_remove_course_requires_auth():
 
     assert response.status_code == 401
     assert response.json() == {"detail": "Could not validate credentials"}
+
+
+# --- DELETE /cart ---
+
+
+@pytest.fixture
+def mock_clear_cart_service(monkeypatch):
+    mock = AsyncMock()
+    monkeypatch.setattr(carts, "clear_cart_items", mock)
+    return mock
+
+
+def test_clear_cart(client, mock_clear_cart_service):
+    mock_clear_cart_service.return_value = None
+
+    response = client.delete(
+        "/cart",
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 204
+
+
+def test_clear_cart_requires_auth():
+    async def override_get_db():
+        yield AsyncMock()
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides.pop(get_current_user_id, None)
+    with TestClient(app) as c:
+        response = c.delete("/cart")
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Could not validate credentials"}
