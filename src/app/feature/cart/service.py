@@ -7,6 +7,7 @@ from app.feature.cart.repository import (
     get_cart_item,
     get_cart_items,
     get_or_create_cart,
+    remove_cart_item,
 )
 from app.feature.cart.schemas import CartItemResponse, CartResponse, CourseSummary
 from app.feature.course.repository import get_course_by_id
@@ -83,3 +84,13 @@ async def add_to_cart(
         added_at=cart_item.added_at,
         course=CourseSummary.model_validate(course),
     )
+
+
+async def remove_from_cart(session: AsyncSession, user_id: int, course_id: int) -> None:
+    cart = await get_or_create_cart(session, user_id)
+
+    existing_item = await get_cart_item(session, cart.id, course_id)
+    if existing_item is None:
+        raise LookupError("Course not in cart")
+
+    await remove_cart_item(session, cart.id, course_id)
