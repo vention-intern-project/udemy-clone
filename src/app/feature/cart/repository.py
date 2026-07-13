@@ -25,3 +25,25 @@ async def get_cart_items(session: AsyncSession, cart_id: int) -> list[CartItem]:
         .where(CartItem.cart_id == cart_id)
     )
     return list(result.scalars().all())
+
+
+async def get_cart_item(
+    session: AsyncSession, cart_id: int, course_id: int
+) -> CartItem | None:
+    result = await session.execute(
+        select(CartItem).where(
+            CartItem.cart_id == cart_id,
+            CartItem.course_id == course_id,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def add_cart_item(
+    session: AsyncSession, cart_id: int, course_id: int
+) -> CartItem:
+    cart_item = CartItem(cart_id=cart_id, course_id=course_id)
+    session.add(cart_item)
+    await session.commit()
+    await session.refresh(cart_item)
+    return cart_item
