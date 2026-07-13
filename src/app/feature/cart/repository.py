@@ -47,3 +47,16 @@ async def add_cart_item(
     await session.commit()
     await session.refresh(cart_item)
     return cart_item
+
+
+async def remove_cart_item(session: AsyncSession, cart_id: int, course_id: int) -> None:
+    result = await session.execute(
+        select(CartItem).where(
+            CartItem.cart_id == cart_id,
+            CartItem.course_id == course_id,
+        )
+    )
+    cart_item = result.scalar_one_or_none()
+    if cart_item:
+        await session.delete(cart_item)
+        await session.commit()
