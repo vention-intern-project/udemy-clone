@@ -3,9 +3,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import get_current_user_id
 from app.db.database import get_db
-from app.feature.cart.schemas import CartItemAdd, CartItemResponse, CartResponse
+from app.feature.cart.schemas import (
+    CartItemAdd,
+    CartItemResponse,
+    CartResponse,
+    CheckoutResponse,
+)
 from app.feature.cart.service import (
     add_to_cart,
+    checkout,
     clear_cart_items,
     get_cart,
     remove_from_cart,
@@ -81,3 +87,14 @@ async def clear_cart_endpoint(
     session: AsyncSession = Depends(get_db),
 ):
     await clear_cart_items(session, user_id)
+
+
+@router.post(
+    "/checkout",
+    response_model=CheckoutResponse,
+)
+async def cart_checkout(
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    return await checkout(session, user_id)
