@@ -4,7 +4,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.dependencies import get_current_user_id
 from app.db.database import get_db
 from app.feature.cart.schemas import CartItemAdd, CartItemResponse, CartResponse
-from app.feature.cart.service import add_to_cart, get_cart, remove_from_cart
+from app.feature.cart.service import (
+    add_to_cart,
+    clear_cart_items,
+    get_cart,
+    remove_from_cart,
+)
 
 router = APIRouter(prefix="/cart", tags=["cart"])
 
@@ -68,3 +73,11 @@ async def remove_cart_item_endpoint(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         ) from None
+
+
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_cart_endpoint(
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    await clear_cart_items(session, user_id)
