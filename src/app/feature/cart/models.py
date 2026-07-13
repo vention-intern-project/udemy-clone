@@ -4,6 +4,7 @@ from sqlalchemy import DateTime, ForeignKey, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.feature.course.models import Course
 
 
 class Cart(Base):
@@ -51,3 +52,4 @@ class CartItem(Base):
     __table_args__ = (UniqueConstraint("cart_id", "course_id"),)
 
     cart: Mapped["Cart"] = relationship(back_populates="items")
+    course: Mapped["Course"] = relationship()
