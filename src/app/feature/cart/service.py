@@ -2,6 +2,8 @@ from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fastapi import HTTPException, status
+
 from app.feature.cart.repository import (
     add_cart_item,
     clear_cart,
@@ -9,10 +11,13 @@ from app.feature.cart.repository import (
     get_cart_items,
     get_or_create_cart,
     remove_cart_item,
+    get_only_cart,
+    enrollment_exists,
 )
 from app.feature.cart.schemas import CartItemResponse, CartResponse, CourseSummary, CheckoutResponse
 from app.feature.course.repository import get_course_by_id
-from app.feature.enrollment.repository import get_enrollment_by_user_and_course
+from app.feature.enrollment.repository import get_enrollment_by_user_and_course, create_enrollment
+from app.feature.enrollment.models import EnrollmentStatus
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
 
@@ -106,7 +111,7 @@ async def checkout(
         user_id: int
 ) -> CheckoutResponse:
 
-    cart = await get_cart_items(session, user_id)
+    cart = await get_only_cart(session, user_id)
 
     if cart is None or not cart.items:
         raise HTTPException(
@@ -119,27 +124,30 @@ async def checkout(
     try:
         for item in cart.items:
 
-            already_enrolled = await self.repository.enrollment_exists(
-                student.id,
+            already_enrolled = await enrollment_exists(
+                session,
+                user_id,
                 item.course_id,
             )
 
             if already_enrolled:
                 continue
 
-            await self.repository.create_enrollment(
-                student.id,
+            await create_enrollment(
+                session,
+                user_id,
                 item.course_id,
+                EnrollmentStatus.ACTIVE
             )
 
             enrolled += 1
 
-        await self.repository.clear_cart(cart)
+        await clear_cart(session, cart.id)
 
-        await self.session.commit()
+        await session.commit()
 
     except Exception:
-        await self.session.rollback()
+        await session.rollback()
         raise
 
     return CheckoutResponse(
