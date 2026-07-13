@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.feature.cart.repository import (
     add_cart_item,
+    clear_cart,
     get_cart_item,
     get_cart_items,
     get_or_create_cart,
@@ -94,3 +95,8 @@ async def remove_from_cart(session: AsyncSession, user_id: int, course_id: int) 
         raise LookupError("Course not in cart")
 
     await remove_cart_item(session, cart.id, course_id)
+
+
+async def clear_cart_items(session: AsyncSession, user_id: int) -> None:
+    cart = await get_or_create_cart(session, user_id)
+    await clear_cart(session, cart.id)
