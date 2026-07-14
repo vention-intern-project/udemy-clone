@@ -1,10 +1,9 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, UniqueConstraint, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.feature.course.models import Course
 
 
 class Review(Base):
