@@ -41,6 +41,9 @@ from app.feature.enrollment.service import (
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
 
+from app.feature.review.schemas import ReviewCreate, ReviewUpdate, ReviewResponse, ReviewListResponse
+from app.feature.review.service import create_review, update_review, delete_review_service, get_course_reviews_service
+
 router = APIRouter(prefix="/courses", tags=["courses"])
 
 
@@ -354,3 +357,32 @@ async def get_progress(
         ) from None
 
     return course_progress_bar
+
+
+@router.post("/{course_id}/reviews", response_model=ReviewResponse)
+async def creating_review(
+    course_id: int,
+    payload: ReviewCreate,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        review = await create_review(session, user_id, course_id, payload)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    if review is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Review not found",
+        )
+
+    return review
