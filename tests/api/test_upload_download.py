@@ -9,7 +9,7 @@ from app.db.database import get_db
 from app.feature.course.models import LessonType
 from app.main import app
 
-from .factories import LessonFactory
+from .factories import CourseFactory, LessonFactory
 
 
 @pytest.fixture
@@ -138,11 +138,24 @@ def test_download_requires_auth(no_auth_client):
     assert response.json() == {"detail": "Could not validate credentials"}
 
 
-def test_download_returns_file(client, tmp_path):
+def test_download_returns_file(client, tmp_path, monkeypatch):
     media_dir = tmp_path / "lessons" / "video"
     media_dir.mkdir(parents=True)
     test_file = media_dir / "abc123.mp4"
     test_file.write_bytes(b"fake video content")
+
+    mock_lesson = LessonFactory(
+        id=1,
+        lesson_type=LessonType.VIDEO,
+        file_url="lessons/video/abc123.mp4",
+        course=CourseFactory(instructor_id=1),
+    )
+    monkeypatch.setattr(
+        media, "get_lesson_by_file_url", AsyncMock(return_value=mock_lesson)
+    )
+    monkeypatch.setattr(
+        media, "get_active_enrollment_by_course", AsyncMock(return_value=None)
+    )
 
     with patch.object(media, "settings") as mock_settings:
         mock_settings.MEDIA_ROOT = str(tmp_path)
@@ -153,9 +166,11 @@ def test_download_returns_file(client, tmp_path):
     assert response.content == b"fake video content"
 
 
-def test_download_not_found(client, tmp_path):
+def test_download_not_found(client, tmp_path, monkeypatch):
     empty_dir = tmp_path / "lessons"
     empty_dir.mkdir(parents=True)
+
+    monkeypatch.setattr(media, "get_lesson_by_file_url", AsyncMock(return_value=None))
 
     with patch.object(media, "settings") as mock_settings:
         mock_settings.MEDIA_ROOT = str(tmp_path)
