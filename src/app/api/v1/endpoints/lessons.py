@@ -8,7 +8,7 @@ from fastapi import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.dependencies import get_current_user_id
+from app.api.v1.dependencies import get_current_user_id, optional_current_user_id
 from app.core.storage import delete_file, save_file
 from app.db.database import get_db
 from app.feature.course.schemas import LessonResponse, LessonUpdateRequest
@@ -17,6 +17,7 @@ from app.feature.course.service import (
     update_lesson,
     upload_lesson_file,
 )
+from app.feature.enrollment.repository import get_active_enrollment_by_course
 from app.feature.knowledge.service import process_lesson_upload
 
 router = APIRouter(prefix="/lessons", tags=["lessons"])
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/lessons", tags=["lessons"])
 @router.get("/{lesson_id}", response_model=LessonResponse)
 async def get_lesson(
     lesson_id: int,
+    user_id: int | None = Depends(optional_current_user_id),
     session: AsyncSession = Depends(get_db),
 ):
     lesson = await get_lesson_detail(session, lesson_id)
@@ -35,7 +37,20 @@ async def get_lesson(
             detail="Lesson not found",
         )
 
-    return lesson
+    response = LessonResponse.model_validate(lesson)
+
+    if user_id is not None:
+        is_instructor = lesson.course.instructor_id == user_id
+        if not is_instructor:
+            enrollment = await get_active_enrollment_by_course(
+                session, user_id, lesson.course_id
+            )
+            if enrollment is None:
+                response.download_url = None
+    else:
+        response.download_url = None
+
+    return response
 
 
 @router.patch("/{lesson_id}", response_model=LessonResponse)
