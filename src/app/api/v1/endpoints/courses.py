@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.dependencies import get_current_user_id
+from app.api.v1.dependencies import get_current_user_id, optional_current_user_id
 from app.db.database import get_db
+from app.feature.course.repository import get_course_by_id
 from app.feature.course.schemas import (
     CourseCreateRequest,
     CourseDetailResponse,
@@ -25,6 +26,7 @@ from app.feature.course.service import (
     get_list_lessons,
     update_course,
 )
+from app.feature.enrollment.repository import get_active_enrollment_by_course
 from app.feature.enrollment.schemas import (
     CourseEnrollmentListResponse,
     CourseProgressResponse,
@@ -85,14 +87,29 @@ async def list_lessons(
     course_id: int,
     page: int = 1,
     size: int = 100,
+    user_id: int | None = Depends(optional_current_user_id),
     session: AsyncSession = Depends(get_db),
 ):
-    return await get_list_lessons(
+    response = await get_list_lessons(
         session,
         course_id=course_id,
         page=page,
         size=size,
     )
+
+    if user_id is not None and response.items:
+        course = await get_course_by_id(session, course_id)
+        is_instructor = course is not None and course.instructor_id == user_id
+
+        if not is_instructor:
+            enrollment = await get_active_enrollment_by_course(
+                session, user_id, course_id
+            )
+            if enrollment is None:
+                for lesson in response.items:
+                    lesson.download_url = None
+
+    return response
 
 
 @router.post("/{course_id}/lessons", response_model=LessonResponse)
@@ -127,6 +144,7 @@ async def creating_lesson(
 @router.get("/{course_id}", response_model=CourseDetailResponse)
 async def get_course(
     course_id: int,
+    user_id: int | None = Depends(optional_current_user_id),
     session: AsyncSession = Depends(get_db),
 ):
     course = await get_course_detail(session, course_id)
@@ -137,7 +155,24 @@ async def get_course(
             detail="Course not found",
         )
 
-    return course
+    response = CourseDetailResponse.model_validate(course)
+
+    can_see_files = False
+    if user_id is not None:
+        if course.instructor_id == user_id:
+            can_see_files = True
+        else:
+            enrollment = await get_active_enrollment_by_course(
+                session, user_id, course_id
+            )
+            if enrollment is not None:
+                can_see_files = True
+
+    if not can_see_files:
+        for lesson in response.lessons:
+            lesson.download_url = None
+
+    return response
 
 
 @router.get("/{course_id}/enrollments", response_model=CourseEnrollmentListResponse)
