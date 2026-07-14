@@ -39,6 +39,21 @@ async def get_enrollment_by_user_and_course(
     return result.scalar_one_or_none()
 
 
+async def get_active_enrollment_by_course(
+    session: AsyncSession,
+    user_id: int,
+    course_id: int,
+) -> Enrollment | None:
+    result = await session.execute(
+        select(Enrollment).where(
+            Enrollment.user_id == user_id,
+            Enrollment.course_id == course_id,
+            Enrollment.status == EnrollmentStatus.ACTIVE,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
 async def get_enrollments_by_user(
     session: AsyncSession,
     user_id: int,
