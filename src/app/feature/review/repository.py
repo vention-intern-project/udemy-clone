@@ -46,7 +46,7 @@ async def get_course_reviews(
     return result.scalars().all(), total
 
 
-async def delete(session: AsyncSession, review: Review):
+async def delete_rev(session: AsyncSession, review: Review):
     await session.delete(review)
     await session.commit()
 

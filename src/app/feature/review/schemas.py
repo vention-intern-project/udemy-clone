@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from datetime import datetime
 
 
 class ReviewCreate(BaseModel):
@@ -12,8 +13,22 @@ class ReviewUpdate(BaseModel):
 
 
 class ReviewResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     course_id: int
     student_id: int
     rating: float | None
     comment: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ReviewListResponse(BaseModel):
+    items: list[ReviewResponse]
+    page: int
+    page_size: int
+    total: int
+    pages: int
+    has_next: bool
+    has_previous: bool
