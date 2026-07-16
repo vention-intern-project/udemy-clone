@@ -25,8 +25,8 @@ class Settings:
     FRONTEND_URL = os.getenv("FRONTEND_URL", "")
     MEDIA_ROOT = os.getenv("MEDIA_ROOT", "media")
 
-    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-    LLM_MODEL = os.getenv("LLM_MODEL", "google/gemma-4-31b-it:free")
+    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+    LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash")
 
     @property
     def DATABASE_URL(self):

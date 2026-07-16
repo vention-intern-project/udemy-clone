@@ -22,5 +22,5 @@ async def chat(request: ChatRequest, req: Request):
 
     return ChatResponse(
         thread_id=request.thread_id,
-        response=response["messages"][-1].content,
+        response=response["messages"][-1].text,
     )
