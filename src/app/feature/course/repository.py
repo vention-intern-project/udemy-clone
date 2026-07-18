@@ -142,3 +142,12 @@ async def count_course_lessons(session: AsyncSession, course_id: int) -> int:
     )
 
     return total
+
+
+async def get_lesson_by_file_url(session: AsyncSession, file_url: str) -> Lesson | None:
+    result = await session.execute(
+        select(Lesson)
+        .options(selectinload(Lesson.course))
+        .where(Lesson.file_url.ilike(f"%{file_url}"))
+    )
+    return result.scalar_one_or_none()

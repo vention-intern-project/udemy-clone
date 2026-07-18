@@ -1,7 +1,7 @@
 import json
 
 from langchain_core.messages import HumanMessage
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.core.config import settings
 
@@ -33,17 +33,16 @@ Content:
 
 
 async def generate_metadata(content: str) -> dict:
-    llm = ChatOpenAI(
+    llm = ChatGoogleGenerativeAI(
         model=settings.LLM_MODEL,
-        openai_api_base="https://openrouter.ai/api/v1",
-        openai_api_key=settings.OPENROUTER_API_KEY,
+        google_api_key=settings.GOOGLE_API_KEY,
         temperature=0,
     )
 
     prompt = METADATA_PROMPT.format(content=content[:3000])
     response = await llm.ainvoke([HumanMessage(content=prompt)])
 
-    text = response.content.strip()
+    text = response.text.strip()
     if text.startswith("```"):
         text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
 
@@ -51,17 +50,16 @@ async def generate_metadata(content: str) -> dict:
 
 
 async def generate_quiz(content: str) -> list[dict]:
-    llm = ChatOpenAI(
+    llm = ChatGoogleGenerativeAI(
         model=settings.LLM_MODEL,
-        openai_api_base="https://openrouter.ai/api/v1",
-        openai_api_key=settings.OPENROUTER_API_KEY,
+        google_api_key=settings.GOOGLE_API_KEY,
         temperature=0,
     )
 
     prompt = QUIZ_PROMPT.format(content=content[:3000])
     response = await llm.ainvoke([HumanMessage(content=prompt)])
 
-    text = response.content.strip()
+    text = response.text.strip()
     if text.startswith("```"):
         text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
 
@@ -69,17 +67,16 @@ async def generate_quiz(content: str) -> list[dict]:
 
 
 async def generate_summary(content: str) -> dict:
-    llm = ChatOpenAI(
+    llm = ChatGoogleGenerativeAI(
         model=settings.LLM_MODEL,
-        openai_api_base="https://openrouter.ai/api/v1",
-        openai_api_key=settings.OPENROUTER_API_KEY,
+        google_api_key=settings.GOOGLE_API_KEY,
         temperature=0,
     )
 
     prompt = SUMMARY_PROMPT.format(content=content[:3000])
     response = await llm.ainvoke([HumanMessage(content=prompt)])
 
-    text = response.content.strip()
+    text = response.text.strip()
     if text.startswith("```"):
         text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
 

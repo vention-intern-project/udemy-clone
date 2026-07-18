@@ -1,6 +1,6 @@
 from langchain.agents import create_agent
 from langchain_core.messages import SystemMessage
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.core.config import settings
 from app.feature.chat.service import checkpointer
@@ -9,10 +9,10 @@ from app.feature.knowledge.tools import KNOWLEDGE_TOOLS
 
 
 def create_chat_agent():
-    llm = ChatOpenAI(
+    llm = ChatGoogleGenerativeAI(
         model=settings.LLM_MODEL,
-        openai_api_base="https://openrouter.ai/api/v1",
-        openai_api_key=settings.OPENROUTER_API_KEY,
+        google_api_key=settings.GOOGLE_API_KEY,
+        temperature=1,
     )
 
     agent = create_agent(
