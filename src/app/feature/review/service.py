@@ -52,12 +52,12 @@ async def create_review(
 
 async def update_review(
         session: AsyncSession,
-        review_id: int,
+        course_id: int,
         student_id: int,
         data = ReviewUpdate,
 ):
 
-    review = await get_review_by_id(session, review_id)
+    review = await get_student_review(session, student_id, course_id)
 
     if review is None:
         raise ValueError("Review not found")
@@ -78,11 +78,11 @@ async def update_review(
 
 async def delete_review_service(
         session: AsyncSession,
-        review_id: int,
+        course_id: int,
         student_id: int,
 ):
 
-    review = await get_review_by_id(session, review_id)
+    review = await get_student_review(session, student_id, course_id)
 
     if review is None:
         raise ValueError("Review not found")
