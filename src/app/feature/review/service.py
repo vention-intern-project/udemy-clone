@@ -2,21 +2,28 @@ import math
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.feature.review.models import Review
-from app.feature.review.schemas import ReviewCreate, ReviewUpdate, ReviewListResponse, ReviewResponse
-from app.feature.review.repository import (get_course_reviews, get_review_by_id, get_rating_stats, get_student_review,
-                                           delete_rev)
-
-from app.feature.course.repository import get_course_by_id
-
 from app.feature.cart.repository import enrollment_exists
+from app.feature.course.repository import get_course_by_id
+from app.feature.review.models import Review
+from app.feature.review.repository import (
+    delete_rev,
+    get_course_reviews,
+    get_rating_stats,
+    get_student_review,
+)
+from app.feature.review.schemas import (
+    ReviewCreate,
+    ReviewListResponse,
+    ReviewResponse,
+    ReviewUpdate,
+)
 
 
 async def create_review(
-        session: AsyncSession,
-        student_id: int,
-        course_id: int,
-        data = ReviewCreate,
+    session: AsyncSession,
+    student_id: int,
+    course_id: int,
+    data=ReviewCreate,
 ):
     course = await get_course_by_id(session, course_id)
 
@@ -50,11 +57,12 @@ async def create_review(
 
     return review
 
+
 async def update_review(
-        session: AsyncSession,
-        course_id: int,
-        student_id: int,
-        data = ReviewUpdate,
+    session: AsyncSession,
+    course_id: int,
+    student_id: int,
+    data=ReviewUpdate,
 ):
 
     review = await get_student_review(session, student_id, course_id)
@@ -76,10 +84,11 @@ async def update_review(
 
     return review
 
+
 async def delete_review_service(
-        session: AsyncSession,
-        course_id: int,
-        student_id: int,
+    session: AsyncSession,
+    course_id: int,
+    student_id: int,
 ):
 
     review = await get_student_review(session, student_id, course_id)
@@ -117,6 +126,7 @@ async def get_course_reviews_service(
         has_next=page < pages,
         has_previous=page > 1,
     )
+
 
 async def get_rating(
     session: AsyncSession,

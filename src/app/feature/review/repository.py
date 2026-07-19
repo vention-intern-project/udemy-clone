@@ -1,7 +1,8 @@
-from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
 from collections.abc import Sequence
 from typing import Any
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.feature.review.models import Review
 
@@ -11,10 +12,11 @@ async def get_review_by_id(session: AsyncSession, review_id: int) -> Review | No
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
 
+
 async def get_student_review(
-        session: AsyncSession,
-        student_id: int,
-        course_id: int,
+    session: AsyncSession,
+    student_id: int,
+    course_id: int,
 ) -> Review | None:
     stmt = select(Review).where(
         Review.user_id == student_id,
@@ -24,11 +26,12 @@ async def get_student_review(
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
 
+
 async def get_course_reviews(
-        session: AsyncSession,
-        course_id: int,
-        page: int,
-        size: int,
+    session: AsyncSession,
+    course_id: int,
+    page: int,
+    size: int,
 ) -> tuple[Sequence[Any], Any | None]:
     stmt = (
         select(Review)
@@ -55,9 +58,7 @@ async def get_rating_stats(session: AsyncSession, course_id: int):
     stmt = select(
         func.avg(Review.rating),
         func.count(Review.id),
-    ).where(
-        Review.course_id == course_id
-    )
+    ).where(Review.course_id == course_id)
 
     result = await session.execute(stmt)
 

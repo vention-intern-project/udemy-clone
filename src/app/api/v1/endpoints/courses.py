@@ -38,11 +38,20 @@ from app.feature.enrollment.service import (
     get_course_enrollments,
     incomplete_lesson,
 )
+from app.feature.review.schemas import (
+    ReviewCreate,
+    ReviewListResponse,
+    ReviewResponse,
+    ReviewUpdate,
+)
+from app.feature.review.service import (
+    create_review,
+    delete_review_service,
+    get_course_reviews_service,
+    update_review,
+)
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
-
-from app.feature.review.schemas import ReviewCreate, ReviewUpdate, ReviewResponse, ReviewListResponse
-from app.feature.review.service import create_review, update_review, delete_review_service, get_course_reviews_service
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 
@@ -396,9 +405,7 @@ async def list_course_reviews(
     session: AsyncSession = Depends(get_db),
 ):
     try:
-        result = await get_course_reviews_service(
-            session, course_id, page, page_size
-        )
+        result = await get_course_reviews_service(session, course_id, page, page_size)
     except LookupError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -422,11 +429,11 @@ async def updating_review(
 ):
     try:
         result = await update_review(
-        session,
-        course_id,
-        user_id,
-        payload,
-    )
+            session,
+            course_id,
+            user_id,
+            payload,
+        )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
