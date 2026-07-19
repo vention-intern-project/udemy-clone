@@ -17,7 +17,7 @@ class ReviewResponse(BaseModel):
 
     id: int
     course_id: int
-    student_id: int
+    user_id: int
     rating: float | None
     comment: str | None
     created_at: datetime
