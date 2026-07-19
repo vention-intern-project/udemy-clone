@@ -38,7 +38,7 @@ async def create_review(
         raise PermissionError("You already have reviewed this course")
 
     review = Review(
-        student_id=student_id,
+        user_id=student_id,
         course_id=course_id,
         rating=data.rating,
         comment=data.comment,
