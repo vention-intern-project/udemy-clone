@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.feature.cart.models import Cart, CartItem
-from app.feature.enrollment.models import Enrollment
+from app.feature.enrollment.models import Enrollment, EnrollmentStatus
 
 
 async def get_or_create_cart(session: AsyncSession, student_id: int) -> Cart:
@@ -42,6 +42,9 @@ async def enrollment_exists(
     stmt = select(Enrollment).where(
         Enrollment.user_id == student_id,
         Enrollment.course_id == course_id,
+        Enrollment.status.in_(
+            [EnrollmentStatus.ACTIVE, EnrollmentStatus.PENDING_PAYMENT]
+        ),
     )
 
     result = await session.execute(stmt)
