@@ -38,6 +38,18 @@ from app.feature.enrollment.service import (
     get_course_enrollments,
     incomplete_lesson,
 )
+from app.feature.review.schemas import (
+    ReviewCreate,
+    ReviewListResponse,
+    ReviewResponse,
+    ReviewUpdate,
+)
+from app.feature.review.service import (
+    create_review,
+    delete_review_service,
+    get_course_reviews_service,
+    update_review,
+)
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
 
@@ -354,3 +366,109 @@ async def get_progress(
         ) from None
 
     return course_progress_bar
+
+
+@router.post("/{course_id}/reviews", response_model=ReviewResponse)
+async def creating_review(
+    course_id: int,
+    payload: ReviewCreate,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        review = await create_review(session, user_id, course_id, payload)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    if review is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Review not found",
+        )
+
+    return review
+
+
+@router.get("/{course_id}/reviews", response_model=ReviewListResponse)
+async def list_course_reviews(
+    course_id: int,
+    page: int = 1,
+    page_size: int = 100,
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await get_course_reviews_service(session, course_id, page, page_size)
+    except LookupError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from None
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    return result
+
+
+@router.patch("/{course_id}/reviews")
+async def updating_review(
+    course_id: int,
+    payload: ReviewUpdate,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await update_review(
+            session,
+            course_id,
+            user_id,
+            payload,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from None
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    return result
+
+
+@router.delete("/{course_id}/reviews")
+async def delete_review(
+    course_id: int,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        await delete_review_service(
+            session,
+            course_id,
+            user_id,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from None
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    return {"message": "Review deleted"}
