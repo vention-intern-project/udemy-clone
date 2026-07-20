@@ -12,6 +12,7 @@ from app.feature.user.models import User
 class EnrollmentStatus(enum.StrEnum):
     PENDING_PAYMENT = "pending_payment"
     ACTIVE = "active"
+    CANCELLED = "cancelled"
 
 
 class Enrollment(Base):
