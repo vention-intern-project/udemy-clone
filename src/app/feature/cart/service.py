@@ -24,6 +24,7 @@ from app.feature.enrollment.models import EnrollmentStatus
 from app.feature.enrollment.repository import (
     create_enrollment,
     get_enrollment_by_user_and_course,
+    update_enrollment_status,
 )
 from app.feature.user.models import UserRole
 from app.feature.user.repository import get_user_by_id
@@ -86,7 +87,10 @@ async def add_to_cart(
     existing_enrollment = await get_enrollment_by_user_and_course(
         session, user_id, course_id
     )
-    if existing_enrollment is not None:
+    if existing_enrollment is not None and existing_enrollment.status in (
+        EnrollmentStatus.ACTIVE,
+        EnrollmentStatus.PENDING_PAYMENT,
+    ):
         raise ValueError("Already enrolled in this course")
 
     cart_item = await add_cart_item(session, cart.id, course_id)
@@ -137,9 +141,24 @@ async def checkout(session: AsyncSession, user_id: int) -> CheckoutResponse:
             if already_enrolled:
                 continue
 
-            await create_enrollment(
-                session, user_id, item.course_id, EnrollmentStatus.ACTIVE
+            enrollment_status = (
+                EnrollmentStatus.ACTIVE
+                if item.course.price == 0
+                else EnrollmentStatus.PENDING_PAYMENT
             )
+
+            existing_enrollment = await get_enrollment_by_user_and_course(
+                session, user_id, item.course_id
+            )
+
+            if existing_enrollment is not None:
+                await update_enrollment_status(
+                    session, existing_enrollment.id, enrollment_status
+                )
+            else:
+                await create_enrollment(
+                    session, user_id, item.course_id, enrollment_status
+                )
 
             enrolled += 1
 

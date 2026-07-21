@@ -83,6 +83,20 @@ async def get_enrollments_by_user(
     return enrollments, total
 
 
+async def update_enrollment_status(
+    session: AsyncSession,
+    enrollment_id: int,
+    status: EnrollmentStatus,
+) -> Enrollment | None:
+    enrollment = await get_enrollment_by_id(session, enrollment_id)
+    if enrollment is None:
+        return None
+    enrollment.status = status
+    await session.commit()
+    await session.refresh(enrollment)
+    return enrollment
+
+
 async def get_enrollment_by_id(
     session: AsyncSession,
     enrollment_id: int,

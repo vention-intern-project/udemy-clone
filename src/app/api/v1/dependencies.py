@@ -1,9 +1,19 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.security import decode_token
 
 bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def get_chat_agent(request: Request):
+    agent = request.app.state.agent
+    if agent is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Chat agent is not available",
+        )
+    return agent
 
 
 def get_current_user_id(
