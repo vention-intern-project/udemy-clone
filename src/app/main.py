@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 
+from app.admin import create_admin
 from app.api.v1.endpoints.media import router as media_router
 from app.api.v1.router import api_router
 from app.core.config import settings
@@ -25,6 +26,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+admin = create_admin(app)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
