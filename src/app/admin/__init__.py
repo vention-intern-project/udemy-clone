@@ -65,8 +65,8 @@ def create_admin(app):
         base_url="/admin",
     )
 
-    from app.admin.views.user import UserAdmin
     from app.admin.views.course import CourseAdmin
+    from app.admin.views.user import UserAdmin
 
     admin.add_view(UserAdmin)
     admin.add_view(CourseAdmin)
