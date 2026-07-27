@@ -37,6 +37,6 @@ jobs:
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
             sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=${{ github.sha }}|" .env
             docker compose -f docker-compose.prod.yml pull api
-            docker compose -f docker-compose.prod.yml run --rm api uv run alembic upgrade head
+            docker compose -f docker-compose.prod.yml run --rm -w /app/src api uv run alembic upgrade head
             docker compose -f docker-compose.prod.yml up -d --wait
             docker image prune -f
