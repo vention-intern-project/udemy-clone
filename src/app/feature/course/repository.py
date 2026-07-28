@@ -118,14 +118,20 @@ async def list_lessons(
     course_id: int,
     page: int,
     size: int,
+    include_unpublished: bool = False,
 ) -> tuple[Sequence[Any], Any | None]:
+    conditions = [Lesson.course_id == course_id]
+
+    if not include_unpublished:
+        conditions.append(Lesson.is_published.is_(True))
+
     total = await session.scalar(
-        select(func.count()).select_from(Lesson).where(Lesson.course_id == course_id)
+        select(func.count()).select_from(Lesson).where(*conditions)
     )
 
     query = (
         select(Lesson)
-        .where(Lesson.course_id == course_id)
+        .where(*conditions)
         .order_by(Lesson.id)
         .offset((page - 1) * size)
         .limit(size)
