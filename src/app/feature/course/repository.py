@@ -45,6 +45,21 @@ async def delete_lesson(session: AsyncSession, lesson: Lesson) -> None:
     await session.commit()
 
 
+def build_search_condition(search_query: str):
+    pattern = f"%{' '.join(search_query.split())}%"
+
+    return or_(
+        Course.title.ilike(pattern),
+        Course.description.ilike(pattern),
+        Course.instructor.has(
+            or_(
+                func.concat(User.name, " ", User.surname).ilike(pattern),
+                func.concat(User.surname, " ", User.name).ilike(pattern),
+            )
+        ),
+    )
+
+
 async def get_all_courses(
     session: AsyncSession,
     page: int,
@@ -56,15 +71,7 @@ async def get_all_courses(
     filter_conditions = []
 
     if filters.search_query:
-        pattern = f"%{filters.search_query.strip()}%"
-        filter_conditions.append(
-            or_(
-                Course.title.ilike(pattern),
-                Course.description.ilike(pattern),
-                Course.instructor.has(User.name.ilike(pattern)),
-                Course.instructor.has(User.surname.ilike(pattern)),
-            )
-        )
+        filter_conditions.append(build_search_condition(filters.search_query))
 
     if filters.min_price is not None:
         filter_conditions.append(Course.price >= filters.min_price)
