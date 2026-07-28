@@ -19,12 +19,39 @@ from app.feature.course.schemas import (
     CourseListItemResponse,
     CourseListResponse,
     CourseUpdateRequest,
+    LessonBriefResponse,
     LessonCreateRequest,
     LessonListItemResponse,
     LessonListResponse,
     LessonUpdateRequest,
 )
 from app.feature.knowledge.service import process_lesson_delete
+from app.feature.user.models import UserRole
+from app.feature.user.repository import get_user_by_id
+
+
+async def is_admin_user(session: AsyncSession, viewer_id: int | None) -> bool:
+    if viewer_id is None:
+        return False
+
+    viewer = await get_user_by_id(session, viewer_id)
+
+    return viewer is not None and viewer.role == UserRole.ADMIN
+
+
+async def can_view_unpublished_lessons(
+    session: AsyncSession,
+    viewer_id: int | None,
+    instructor_id: int | None,
+) -> bool:
+    """Only the owning instructor and admins may see draft lessons."""
+    if viewer_id is None:
+        return False
+
+    if instructor_id is not None and viewer_id == instructor_id:
+        return True
+
+    return await is_admin_user(session, viewer_id)
 
 
 async def create_course(
@@ -219,13 +246,29 @@ async def get_courses_list(
     page: int,
     page_size: int,
     filters: CourseFilters,
+    viewer_id: int | None = None,
 ) -> CourseListResponse:
     courses, total = await get_all_courses(session, page, page_size, filters)
+
+    is_admin = await is_admin_user(session, viewer_id)
+
+    items = []
+    for course in courses:
+        item = CourseListItemResponse.model_validate(course)
+
+        if not (is_admin or course.instructor_id == viewer_id):
+            item.lessons = [
+                LessonBriefResponse.model_validate(lesson)
+                for lesson in course.lessons
+                if lesson.is_published
+            ]
+
+        items.append(item)
 
     pages = math.ceil(total / page_size)
 
     return CourseListResponse(
-        items=[CourseListItemResponse.model_validate(course) for course in courses],
+        items=items,
         page=page,
         page_size=page_size,
         total=total,
@@ -240,12 +283,14 @@ async def get_list_lessons(
     course_id: int,
     page: int,
     size: int,
+    include_unpublished: bool = False,
 ):
     lessons, total = await list_lessons(
         session,
         course_id=course_id,
         page=page,
         size=size,
+        include_unpublished=include_unpublished,
     )
 
     pages = math.ceil(total / size)
