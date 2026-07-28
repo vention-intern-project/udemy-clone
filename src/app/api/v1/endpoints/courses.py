@@ -17,6 +17,7 @@ from app.feature.course.schemas import (
     LessonResponse,
 )
 from app.feature.course.service import (
+    can_view_unpublished_lessons,
     create_course,
     create_lesson,
     deleting_course,
@@ -61,9 +62,10 @@ async def list_courses(
     page: int = 1,
     page_size: int = 100,
     filters: CourseFilters = Depends(),
+    user_id: int | None = Depends(optional_current_user_id),
     session: AsyncSession = Depends(get_db),
 ):
-    return await get_courses_list(session, page, page_size, filters)
+    return await get_courses_list(session, page, page_size, filters, viewer_id=user_id)
 
 
 @router.post("", response_model=CourseResponse)
@@ -102,24 +104,31 @@ async def list_lessons(
     user_id: int | None = Depends(optional_current_user_id),
     session: AsyncSession = Depends(get_db),
 ):
+    course = await get_course_by_id(session, course_id)
+    instructor_id = course.instructor_id if course is not None else None
+
     response = await get_list_lessons(
         session,
         course_id=course_id,
         page=page,
         size=size,
+        include_unpublished=await can_view_unpublished_lessons(
+            session, user_id, instructor_id
+        ),
     )
 
-    if user_id is not None and response.items:
-        course = await get_course_by_id(session, course_id)
-        is_instructor = course is not None and course.instructor_id == user_id
+    if response.items:
+        can_see_files = user_id is not None and instructor_id == user_id
 
-        if not is_instructor:
+        if user_id is not None and not can_see_files:
             enrollment = await get_active_enrollment_by_course(
                 session, user_id, course_id
             )
-            if enrollment is None:
-                for lesson in response.items:
-                    lesson.download_url = None
+            can_see_files = enrollment is not None
+
+        if not can_see_files:
+            for lesson in response.items:
+                lesson.download_url = None
 
     return response
 
@@ -168,6 +177,11 @@ async def get_course(
         )
 
     response = CourseDetailResponse.model_validate(course)
+
+    if not await can_view_unpublished_lessons(session, user_id, course.instructor_id):
+        response.lessons = [
+            lesson for lesson in response.lessons if lesson.is_published
+        ]
 
     can_see_files = False
     if user_id is not None:

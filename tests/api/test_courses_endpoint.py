@@ -1,18 +1,24 @@
+from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
 
-from app.api.v1.dependencies import get_current_user_id
+from app.api.v1.dependencies import get_current_user_id, optional_current_user_id
 from app.api.v1.endpoints import courses
 from app.db.database import get_db
+from app.feature.course import service as course_service
+from app.feature.course.models import LessonType
 from app.feature.course.schemas import (
     CourseListItemResponse,
     CourseListResponse,
     InstructorResponse,
     LessonBriefResponse,
+    LessonListItemResponse,
+    LessonListResponse,
 )
+from app.feature.user.models import UserRole
 from app.main import app
 
 from .factories import CourseFactory, LessonFactory, UserFactory
@@ -253,3 +259,274 @@ def test_list_courses_search_empty_result(
 
     assert response.status_code == 200
     assert response.json()["items"] == []
+
+
+@pytest.fixture
+def mock_user_lookup(monkeypatch):
+    """Patch the viewer lookup used by the draft-visibility checks."""
+    get_user_mock = AsyncMock(return_value=None)
+    monkeypatch.setattr(course_service, "get_user_by_id", get_user_mock)
+    return get_user_mock
+
+
+@pytest.fixture
+def mock_list_repository(monkeypatch, mock_user_lookup):
+    """Patch the repository calls so the real get_courses_list service runs."""
+    get_all_mock = AsyncMock()
+    monkeypatch.setattr(course_service, "get_all_courses", get_all_mock)
+    return get_all_mock, mock_user_lookup
+
+
+@pytest.fixture
+def course_with_draft_lesson():
+    instructor = UserFactory(name="Jane", surname="Doe")
+    published = [LessonFactory(is_published=True) for _ in range(3)]
+    draft = LessonFactory(title="Draft lesson", is_published=False)
+    return (
+        CourseFactory(instructor=instructor, lessons=[*published, draft]),
+        draft,
+    )
+
+
+def lesson_titles(response):
+    return [lesson["title"] for lesson in response.json()["items"][0]["lessons"]]
+
+
+def test_list_courses_hides_drafts_from_anonymous(
+    client, mock_list_repository, course_with_draft_lesson
+):
+    get_all, _ = mock_list_repository
+    course, draft = course_with_draft_lesson
+    get_all.return_value = ([course], 1)
+
+    response = client.get("/courses")
+
+    assert response.status_code == 200
+    assert len(response.json()["items"][0]["lessons"]) == 3
+    assert draft.title not in lesson_titles(response)
+
+
+def test_list_courses_hides_drafts_from_student(
+    client, mock_list_repository, course_with_draft_lesson
+):
+    get_all, get_user = mock_list_repository
+    course, draft = course_with_draft_lesson
+    get_all.return_value = ([course], 1)
+
+    student = UserFactory(name="Sam", role=UserRole.STUDENT)
+    get_user.return_value = student
+    app.dependency_overrides[optional_current_user_id] = lambda: student.id
+
+    response = client.get("/courses")
+
+    assert response.status_code == 200
+    assert len(response.json()["items"][0]["lessons"]) == 3
+    assert draft.title not in lesson_titles(response)
+
+
+def test_list_courses_shows_drafts_to_owning_instructor(
+    client, mock_list_repository, course_with_draft_lesson
+):
+    get_all, get_user = mock_list_repository
+    course, draft = course_with_draft_lesson
+    get_all.return_value = ([course], 1)
+
+    get_user.return_value = course.instructor
+    app.dependency_overrides[optional_current_user_id] = lambda: course.instructor_id
+
+    response = client.get("/courses")
+
+    assert response.status_code == 200
+    assert len(response.json()["items"][0]["lessons"]) == 4
+    assert draft.title in lesson_titles(response)
+
+
+def test_list_courses_shows_drafts_to_admin(
+    client, mock_list_repository, course_with_draft_lesson
+):
+    get_all, get_user = mock_list_repository
+    course, draft = course_with_draft_lesson
+    get_all.return_value = ([course], 1)
+
+    admin = UserFactory(name="Root", role=UserRole.ADMIN)
+    get_user.return_value = admin
+    app.dependency_overrides[optional_current_user_id] = lambda: admin.id
+
+    response = client.get("/courses")
+
+    assert response.status_code == 200
+    assert len(response.json()["items"][0]["lessons"]) == 4
+    assert draft.title in lesson_titles(response)
+
+
+def test_list_courses_skips_user_lookup_for_anonymous(
+    client, mock_list_repository, course_with_draft_lesson
+):
+    get_all, get_user = mock_list_repository
+    course, _ = course_with_draft_lesson
+    get_all.return_value = ([course], 1)
+
+    response = client.get("/courses")
+
+    assert response.status_code == 200
+    get_user.assert_not_awaited()
+
+
+def detail_lesson_titles(response):
+    return [lesson["title"] for lesson in response.json()["lessons"]]
+
+
+def test_get_course_hides_drafts_from_anonymous(
+    client, mock_service, mock_user_lookup, course_with_draft_lesson
+):
+    get_detail, _ = mock_service
+    course, draft = course_with_draft_lesson
+    get_detail.return_value = course
+
+    response = client.get("/courses/1")
+
+    assert response.status_code == 200
+    assert len(response.json()["lessons"]) == 3
+    assert draft.title not in detail_lesson_titles(response)
+    mock_user_lookup.assert_not_awaited()
+
+
+def test_get_course_shows_drafts_to_owning_instructor(
+    client, mock_service, mock_user_lookup, course_with_draft_lesson
+):
+    get_detail, _ = mock_service
+    course, draft = course_with_draft_lesson
+    get_detail.return_value = course
+
+    app.dependency_overrides[optional_current_user_id] = lambda: course.instructor_id
+
+    response = client.get("/courses/1")
+
+    assert response.status_code == 200
+    assert len(response.json()["lessons"]) == 4
+    assert draft.title in detail_lesson_titles(response)
+
+
+def test_get_course_shows_drafts_to_admin(
+    client, mock_service, mock_user_lookup, course_with_draft_lesson
+):
+    get_detail, _ = mock_service
+    course, draft = course_with_draft_lesson
+    get_detail.return_value = course
+
+    admin = UserFactory(name="Root", role=UserRole.ADMIN)
+    mock_user_lookup.return_value = admin
+    app.dependency_overrides[optional_current_user_id] = lambda: admin.id
+
+    response = client.get("/courses/1")
+
+    assert response.status_code == 200
+    assert len(response.json()["lessons"]) == 4
+    assert draft.title in detail_lesson_titles(response)
+
+
+@pytest.fixture
+def mock_lessons_service(monkeypatch):
+    get_course_mock = AsyncMock()
+    list_mock = AsyncMock()
+    monkeypatch.setattr(courses, "get_course_by_id", get_course_mock)
+    monkeypatch.setattr(courses, "get_list_lessons", list_mock)
+
+    list_mock.return_value = LessonListResponse(
+        items=[
+            LessonListItemResponse(
+                id=1,
+                title="Intro",
+                lesson_type=LessonType.PDF,
+                download_url="/media/lessons/secret.pdf",
+                description=None,
+                is_published=True,
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+                updated_at=datetime(2026, 1, 1, tzinfo=UTC),
+            )
+        ],
+        page=1,
+        page_size=100,
+        total=1,
+        pages=1,
+        has_next=False,
+        has_previous=False,
+    )
+    return get_course_mock, list_mock
+
+
+def include_unpublished_arg(list_mock):
+    return list_mock.call_args.kwargs["include_unpublished"]
+
+
+def test_list_lessons_excludes_drafts_for_anonymous(
+    client, mock_lessons_service, mock_user_lookup
+):
+    get_course, list_lessons_mock = mock_lessons_service
+    get_course.return_value = CourseFactory()
+
+    response = client.get("/courses/1/lessons")
+
+    assert response.status_code == 200
+    assert include_unpublished_arg(list_lessons_mock) is False
+    mock_user_lookup.assert_not_awaited()
+
+
+def test_list_lessons_hides_download_url_from_anonymous(
+    client, mock_lessons_service, mock_user_lookup
+):
+    get_course, _ = mock_lessons_service
+    get_course.return_value = CourseFactory()
+
+    response = client.get("/courses/1/lessons")
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["download_url"] is None
+
+
+def test_list_lessons_includes_drafts_for_owning_instructor(
+    client, mock_lessons_service, mock_user_lookup
+):
+    get_course, list_lessons_mock = mock_lessons_service
+    course = CourseFactory()
+    get_course.return_value = course
+
+    app.dependency_overrides[optional_current_user_id] = lambda: course.instructor_id
+
+    response = client.get("/courses/1/lessons")
+
+    assert response.status_code == 200
+    assert include_unpublished_arg(list_lessons_mock) is True
+    assert response.json()["items"][0]["download_url"] == "/media/lessons/secret.pdf"
+
+
+def test_list_lessons_includes_drafts_for_admin(
+    client, mock_lessons_service, mock_user_lookup
+):
+    get_course, list_lessons_mock = mock_lessons_service
+    get_course.return_value = CourseFactory()
+
+    admin = UserFactory(name="Root", role=UserRole.ADMIN)
+    mock_user_lookup.return_value = admin
+    app.dependency_overrides[optional_current_user_id] = lambda: admin.id
+
+    response = client.get("/courses/1/lessons")
+
+    assert response.status_code == 200
+    assert include_unpublished_arg(list_lessons_mock) is True
+
+
+def test_list_lessons_excludes_drafts_for_student(
+    client, mock_lessons_service, mock_user_lookup
+):
+    get_course, list_lessons_mock = mock_lessons_service
+    get_course.return_value = CourseFactory()
+
+    student = UserFactory(name="Sam", role=UserRole.STUDENT)
+    mock_user_lookup.return_value = student
+    app.dependency_overrides[optional_current_user_id] = lambda: student.id
+
+    response = client.get("/courses/1/lessons")
+
+    assert response.status_code == 200
+    assert include_unpublished_arg(list_lessons_mock) is False
