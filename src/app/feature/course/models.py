@@ -26,7 +26,7 @@ class LessonType(enum.StrEnum):
     PDF = "pdf"
 
 
-class SubtitleStatus(enum.StrEnum):
+class SubtitleStatusType(enum.StrEnum):
     PENDING = "pending"
     PROCESSING = "processing"
     COMPLETED = "completed"
@@ -98,7 +98,8 @@ class Lesson(Base):
     file_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     transcript_path: Mapped[str | None]
     subtitles_path: Mapped[str | None]
-    subtitle_status: Mapped[SubtitleStatus] = mapped_column(Enum(SubtitleStatus, name="subtitlestatus"), nullable=True)
+    subtitle_status: Mapped[SubtitleStatusType] = mapped_column(Enum(SubtitleStatusType, name="subtitlestatustype"),
+                                                                default=SubtitleStatusType.PENDING, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_published: Mapped[bool] = mapped_column(
         Boolean,
