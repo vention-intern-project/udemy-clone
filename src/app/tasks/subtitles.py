@@ -1,7 +1,5 @@
 import asyncio
 
-import os
-
 from app.core.celery_con import celery_app
 
 from sqlalchemy import select
@@ -41,12 +39,13 @@ async def generate_subtitles_async(
             video_path = get_media_root() / lesson.file_url
 
             result = service.generate(
-                str(video_path)
+                str(video_path),
+                media_root=get_media_root()
             )
 
             lesson.subtitle_status = "completed"
 
-            lesson.subtitle_path = result.vtt_path
+            lesson.subtitles_path = result.vtt_path
 
             lesson.transcript_path = result.transcript_path
 

@@ -15,6 +15,7 @@ class SubtitleService:
     def generate(
         self,
         video_path: str,
+        media_root,
     ) -> SubtitleResult:
 
         model = get_model()
@@ -61,7 +62,7 @@ class SubtitleService:
                 vtt.write("\n\n")
 
         return SubtitleResult(
-            transcript_path=str(txt_path),
-            vtt_path=str(vtt_path),
-            srt_path=str(srt_path),
+            transcript_path=str(txt_path.relative_to(media_root)),
+            vtt_path=str(vtt_path.relative_to(media_root)),
+            srt_path=str(srt_path.relative_to(media_root)),
         )
