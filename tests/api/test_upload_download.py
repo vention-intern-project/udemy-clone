@@ -97,6 +97,12 @@ def test_upload_returns_download_url(
     upload.return_value = updated_lesson
 
     monkeypatch.setattr(
+        lessons.generate_subtitles,
+        "delay",
+        MagicMock()
+    )
+
+    monkeypatch.setattr(
         lessons, "save_file", AsyncMock(return_value="lessons/video/abc123.mp4")
     )
     monkeypatch.setattr(lessons, "delete_file", MagicMock())
