@@ -35,7 +35,7 @@ async def generate_subtitles_async(
             service = SubtitleService()
 
             result = service.generate(
-                lesson.video_path
+                lesson.file_url
             )
 
             lesson.subtitle_status = "completed"
