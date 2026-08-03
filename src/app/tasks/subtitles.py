@@ -35,8 +35,8 @@ def generate_subtitles(lesson_id: int):
             service = SubtitleService()
 
             video_path = get_media_root() / lesson.file_url
-
             delete_if_exists(lesson.subtitles_path)
+            delete_if_exists(lesson.subtitles_path.replace(".vtt", ".srt"))
             delete_if_exists(lesson.transcript_path)
 
             result = service.generate(
