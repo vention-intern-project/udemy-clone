@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.feature.course.models import LessonType
+from app.feature.course.models import LessonType, SubtitleStatusType
 
 
 class CourseUpdateRequest(BaseModel):
@@ -41,6 +41,9 @@ class LessonResponse(BaseModel):
     course_id: int
     title: str
     lesson_type: LessonType
+    subtitle_status: SubtitleStatusType
+    subtitle_url: str | None
+    transcript_path: str | None
     download_url: str | None
     description: str | None
     is_published: bool

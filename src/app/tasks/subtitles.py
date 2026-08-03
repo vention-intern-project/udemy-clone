@@ -12,7 +12,7 @@ from app.feature.subtitle.service import SubtitleService
 
 
 async def generate_subtitles_async(
-    lesson_id: str,
+    lesson_id: int,
 ):
 
     async with get_db() as session:
@@ -61,7 +61,7 @@ async def generate_subtitles_async(
     retry_backoff=True,
     retry_kwargs={"max_retries": 3},
 )
-def generate_subtitles(lesson_id: str):
+def generate_subtitles(lesson_id: int):
 
     asyncio.run(
         generate_subtitles_async(lesson_id)
