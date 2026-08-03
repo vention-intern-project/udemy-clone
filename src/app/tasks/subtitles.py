@@ -1,5 +1,7 @@
 import asyncio
 
+import os
+
 from app.core.celery_con import celery_app
 
 from sqlalchemy import select
@@ -9,6 +11,8 @@ from app.db.database import SessionLocal
 from app.feature.course.models import Lesson
 
 from app.feature.subtitle.service import SubtitleService
+
+from app.core.storage import get_media_root
 
 
 async def generate_subtitles_async(
@@ -34,8 +38,10 @@ async def generate_subtitles_async(
 
             service = SubtitleService()
 
+            video_path = get_media_root() / lesson.file_url
+
             result = service.generate(
-                lesson.file_url
+                str(video_path)
             )
 
             lesson.subtitle_status = "completed"
@@ -56,10 +62,7 @@ async def generate_subtitles_async(
 
 
 @celery_app.task(
-    bind=True,
-    autoretry_for=(Exception,),
-    retry_backoff=True,
-    retry_kwargs={"max_retries": 3},
+    bind=True
 )
 def generate_subtitles(self, lesson_id: int):
     print("generating subtitles")

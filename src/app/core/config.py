@@ -1,6 +1,8 @@
 import os
-
+from pathlib import Path
 from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parents[3]
 
 load_dotenv()
 
@@ -23,7 +25,7 @@ class Settings:
     MAIL_STARTTLS = os.getenv("MAIL_STARTTLS", "")
     MAIL_SSL_TLS = os.getenv("MAIL_SSL_TLS", "")
     FRONTEND_URL = os.getenv("FRONTEND_URL", "")
-    MEDIA_ROOT = os.getenv("MEDIA_ROOT", "media")
+    MEDIA_ROOT: Path = BASE_DIR / "media"
 
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
     LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash")
