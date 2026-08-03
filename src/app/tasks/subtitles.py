@@ -61,7 +61,7 @@ async def generate_subtitles_async(
     retry_backoff=True,
     retry_kwargs={"max_retries": 3},
 )
-def generate_subtitles(lesson_id: int):
+def generate_subtitles(self, lesson_id: int):
 
     asyncio.run(
         generate_subtitles_async(lesson_id)
