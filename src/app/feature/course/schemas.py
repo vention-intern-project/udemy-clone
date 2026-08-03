@@ -42,7 +42,7 @@ class LessonResponse(BaseModel):
     title: str
     lesson_type: LessonType
     subtitle_status: SubtitleStatusType
-    subtitle_url: str | None
+    subtitles_path: str | None
     transcript_path: str | None
     download_url: str | None
     description: str | None
