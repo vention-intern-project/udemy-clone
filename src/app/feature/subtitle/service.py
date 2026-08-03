@@ -1,17 +1,13 @@
-from pathlib import Path
-
 from app.feature.subtitle.formatter import (
     create_output_paths,
     srt_timestamp,
     vtt_timestamp,
 )
-
 from app.feature.subtitle.schemas import SubtitleResult
 from app.feature.subtitle.whisper import get_model
 
 
 class SubtitleService:
-
     def generate(
         self,
         video_path: str,
@@ -35,11 +31,9 @@ class SubtitleService:
             open(vtt_path, "w", encoding="utf8") as vtt,
             open(srt_path, "w", encoding="utf8") as srt,
         ):
-
             vtt.write("WEBVTT\n\n")
 
             for index, segment in enumerate(segments, start=1):
-
                 text = segment.text.strip()
 
                 transcript.append(text)
@@ -48,15 +42,13 @@ class SubtitleService:
 
                 srt.write(f"{index}\n")
                 srt.write(
-                    f"{srt_timestamp(segment.start)} --> "
-                    f"{srt_timestamp(segment.end)}\n"
+                    f"{srt_timestamp(segment.start)} --> {srt_timestamp(segment.end)}\n"
                 )
                 srt.write(text)
                 srt.write("\n\n")
 
                 vtt.write(
-                    f"{vtt_timestamp(segment.start)} --> "
-                    f"{vtt_timestamp(segment.end)}\n"
+                    f"{vtt_timestamp(segment.start)} --> {vtt_timestamp(segment.end)}\n"
                 )
                 vtt.write(text)
                 vtt.write("\n\n")

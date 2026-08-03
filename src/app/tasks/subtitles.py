@@ -1,14 +1,11 @@
-from app.core.celery_con import celery_app
-
 from sqlalchemy import select
 
+from app.core.celery_con import celery_app
+from app.core.storage import get_media_root
 from app.db.sync_database import SessionLocal
-
 from app.feature.course.models import Lesson
-
 from app.feature.subtitle.service import SubtitleService
 
-from app.core.storage import get_media_root
 
 def delete_if_exists(path: str | None):
     if not path:
@@ -21,9 +18,7 @@ def delete_if_exists(path: str | None):
 @celery_app.task
 def generate_subtitles(lesson_id: int):
     with SessionLocal() as session:
-        lesson = session.scalar(
-            select(Lesson).where(Lesson.id == lesson_id)
-        )
+        lesson = session.scalar(select(Lesson).where(Lesson.id == lesson_id))
 
         if lesson is None:
             return

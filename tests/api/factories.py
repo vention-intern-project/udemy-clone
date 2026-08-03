@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import factory
 
-from app.feature.course.models import Course, Lesson, LessonType
+from app.feature.course.models import Course, Lesson, LessonType, SubtitleStatusType
 from app.feature.enrollment.models import Enrollment, EnrollmentStatus
 from app.feature.user.models import User, UserRole
 
@@ -47,6 +47,9 @@ class LessonFactory(factory.Factory):
     title = "Lesson 1"
     lesson_type = LessonType.VIDEO
     file_url = None
+    subtitle_status = SubtitleStatusType.PENDING
+    transcript_path: None
+    subtitles_path: None
     description = None
     is_published = True
     created_at = datetime(2026, 1, 1, tzinfo=UTC)

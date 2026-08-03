@@ -98,8 +98,11 @@ class Lesson(Base):
     file_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     transcript_path: Mapped[str | None]
     subtitles_path: Mapped[str | None]
-    subtitle_status: Mapped[SubtitleStatusType] = mapped_column(Enum(SubtitleStatusType, name="subtitlestatustype"),
-                                                                default=SubtitleStatusType.PENDING, nullable=False)
+    subtitle_status: Mapped[SubtitleStatusType] = mapped_column(
+        Enum(SubtitleStatusType, name="subtitlestatustype"),
+        default=SubtitleStatusType.PENDING,
+        nullable=False,
+    )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_published: Mapped[bool] = mapped_column(
         Boolean,

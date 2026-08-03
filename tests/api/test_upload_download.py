@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from app.api.v1.dependencies import get_current_user_id
 from app.api.v1.endpoints import lessons, media
 from app.db.database import get_db
-from app.feature.course.models import LessonType
+from app.feature.course.models import LessonType, SubtitleStatusType
 from app.main import app
 
 from .factories import CourseFactory, LessonFactory
@@ -92,6 +92,7 @@ def test_upload_returns_download_url(
         id=1,
         lesson_type=LessonType.VIDEO,
         file_url="lessons/video/abc123.mp4",
+        subtitle_status=SubtitleStatusType.PENDING,
     )
     upload.return_value = updated_lesson
 
