@@ -1,5 +1,3 @@
-import asyncio
-
 from app.core.celery_con import celery_app
 
 from sqlalchemy import select
@@ -12,9 +10,16 @@ from app.feature.subtitle.service import SubtitleService
 
 from app.core.storage import get_media_root
 
+def delete_if_exists(path: str | None):
+    if not path:
+        return
+
+    file = get_media_root() / path
+    file.unlink(missing_ok=True)
+
 
 @celery_app.task
-def generate_subtitles(self, lesson_id: int):
+def generate_subtitles(lesson_id: int):
     with SessionLocal() as session:
         lesson = session.scalar(
             select(Lesson).where(Lesson.id == lesson_id)
@@ -30,6 +35,9 @@ def generate_subtitles(self, lesson_id: int):
             service = SubtitleService()
 
             video_path = get_media_root() / lesson.file_url
+
+            delete_if_exists(lesson.subtitles_path)
+            delete_if_exists(lesson.transcript_path)
 
             result = service.generate(
                 str(video_path),
