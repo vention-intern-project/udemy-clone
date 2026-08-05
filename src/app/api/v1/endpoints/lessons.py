@@ -19,6 +19,7 @@ from app.feature.course.service import (
 )
 from app.feature.enrollment.repository import get_active_enrollment_by_course
 from app.feature.knowledge.service import process_lesson_upload
+from app.tasks.subtitles import generate_subtitles
 
 router = APIRouter(prefix="/lessons", tags=["lessons"])
 
@@ -112,6 +113,7 @@ async def upload_file(
 
     try:
         updated_lesson = await upload_lesson_file(session, lesson_id, user_id, file_url)
+        generate_subtitles.delay(lesson_id)
     except PermissionError as e:
         delete_file(file_url)
         raise HTTPException(
