@@ -136,3 +136,19 @@ async def get_rating(
         session,
         course_id,
     )
+
+async def get_user_course_review(
+    session: AsyncSession,
+    course_id: int,
+    student_id: int,
+):
+
+    review = await get_student_review(session, student_id, course_id)
+
+    if review is None:
+        raise ValueError("Review not found")
+
+    if review.user_id != student_id:
+        raise PermissionError("Not allowed")
+
+    return review
