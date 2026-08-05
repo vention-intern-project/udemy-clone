@@ -137,6 +137,7 @@ async def get_rating(
         course_id,
     )
 
+
 async def get_user_course_review(
     session: AsyncSession,
     course_id: int,
