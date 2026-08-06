@@ -49,6 +49,7 @@ from app.feature.review.service import (
     create_review,
     delete_review_service,
     get_course_reviews_service,
+    get_user_course_review,
     update_review,
 )
 from app.feature.user.models import UserRole
@@ -486,3 +487,25 @@ async def delete_review(
         ) from None
 
     return {"message": "Review deleted"}
+
+
+@router.get("/{course_id}/reviews/me", response_model=ReviewResponse)
+async def get_users_course_review(
+    course_id: int,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await get_user_course_review(session, course_id, user_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from None
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from None
+
+    return result
