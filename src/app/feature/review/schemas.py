@@ -1,15 +1,19 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from typing import Annotated
 
+from pydantic import BaseModel, ConfigDict, Field
+
+
+Rating = Annotated[float, Field(ge=0.0, le=5.0)]
 
 class ReviewCreate(BaseModel):
-    rating: float
+    rating: Rating
     comment: str | None = None
 
 
 class ReviewUpdate(BaseModel):
-    rating: float | None
+    rating: Rating | None
     comment: str | None = None
 
 
@@ -19,7 +23,7 @@ class ReviewResponse(BaseModel):
     id: int
     course_id: int
     user_id: int
-    rating: float | None
+    rating: Rating | None
     comment: str | None
     created_at: datetime
     updated_at: datetime
