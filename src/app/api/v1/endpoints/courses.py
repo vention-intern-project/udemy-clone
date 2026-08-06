@@ -1,7 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.dependencies import get_current_user_id, optional_current_user_id
+from app.api.v1.dependencies import (
+    get_current_instructor,
+    get_current_user_id,
+    optional_current_user_id,
+)
 from app.db.database import get_db
 from app.feature.course.repository import get_course_by_id
 from app.feature.course.schemas import (
@@ -52,8 +56,7 @@ from app.feature.review.service import (
     get_user_course_review,
     update_review,
 )
-from app.feature.user.models import UserRole
-from app.feature.user.repository import get_user_by_id
+from app.feature.user.models import User
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 
@@ -72,19 +75,11 @@ async def list_courses(
 @router.post("", response_model=CourseResponse)
 async def creating_course(
     payload: CourseCreateRequest,
-    user_id: int = Depends(get_current_user_id),
+    instructor: User = Depends(get_current_instructor),
     session: AsyncSession = Depends(get_db),
 ):
-    user = await get_user_by_id(session, user_id)
-
-    if user.role != UserRole.INSTRUCTOR:
-        raise HTTPException(
-            status_code=403,
-            detail="Only instructors can create courses",
-        )
-
     try:
-        course = await create_course(session, user_id, payload)
+        course = await create_course(session, instructor.id, payload)
     except PermissionError as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

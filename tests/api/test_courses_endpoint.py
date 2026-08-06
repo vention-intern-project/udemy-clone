@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
+from app.api.v1 import dependencies
 from app.api.v1.dependencies import get_current_user_id, optional_current_user_id
 from app.api.v1.endpoints import courses
 from app.db.database import get_db
@@ -530,3 +531,62 @@ def test_list_lessons_excludes_drafts_for_student(
 
     assert response.status_code == 200
     assert include_unpublished_arg(list_lessons_mock) is False
+
+
+@pytest.fixture
+def mock_instructor_lookup(monkeypatch):
+    """Patch the user lookup behind the get_current_instructor dependency."""
+    get_user_mock = AsyncMock(return_value=UserFactory(role=UserRole.INSTRUCTOR))
+    monkeypatch.setattr(dependencies, "get_user_by_id", get_user_mock)
+    return get_user_mock
+
+
+@pytest.fixture
+def mock_create_course_service(monkeypatch):
+    create_mock = AsyncMock(return_value=CourseFactory())
+    monkeypatch.setattr(courses, "create_course", create_mock)
+    return create_mock
+
+
+def test_create_course_allows_instructor(
+    client, mock_instructor_lookup, mock_create_course_service
+):
+    response = client.post(
+        "/courses",
+        json={"title": "New course", "price": "10.00", "currency": "USD"},
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 200
+    assert mock_create_course_service.await_count == 1
+
+
+def test_create_course_rejects_student(
+    client, mock_instructor_lookup, mock_create_course_service
+):
+    mock_instructor_lookup.return_value = UserFactory(role=UserRole.STUDENT)
+
+    response = client.post(
+        "/courses",
+        json={"title": "New course", "price": "10.00", "currency": "USD"},
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 403
+    assert mock_create_course_service.await_count == 0
+
+
+def test_create_course_rejects_token_of_deleted_user(
+    client, mock_instructor_lookup, mock_create_course_service
+):
+    mock_instructor_lookup.return_value = None
+
+    response = client.post(
+        "/courses",
+        json={"title": "New course", "price": "10.00", "currency": "USD"},
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Could not validate credentials"}
+    assert mock_create_course_service.await_count == 0
