@@ -168,7 +168,7 @@ async def creating_lesson(
         ) from None
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         ) from None
 
@@ -285,7 +285,7 @@ async def dlt_course(
         ) from None
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         ) from None
 
@@ -308,7 +308,7 @@ async def dlt_lesson(
         ) from None
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         ) from None
 

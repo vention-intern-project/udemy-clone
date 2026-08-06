@@ -765,3 +765,76 @@ def test_create_lesson_rejects_missing_lesson_type(client, mock_create_lesson_se
 
     assert response.status_code == 422
     assert mock_create_lesson_service.await_count == 0
+
+
+def test_create_lesson_course_not_found_returns_404(client, mock_create_lesson_service):
+    mock_create_lesson_service.side_effect = ValueError("Course not found")
+
+    response = client.post(
+        "/courses/1/lessons",
+        json={"title": "Intro", "lesson_type": "video"},
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Course not found"}
+
+
+@pytest.fixture
+def mock_delete_course_service(monkeypatch):
+    delete_mock = AsyncMock(return_value="Course deleted successfully")
+    monkeypatch.setattr(courses, "deleting_course", delete_mock)
+    return delete_mock
+
+
+def test_delete_course_not_found_returns_404(client, mock_delete_course_service):
+    mock_delete_course_service.side_effect = ValueError("Course not found")
+
+    response = client.delete(
+        "/courses/1", headers={"Authorization": "Bearer valid-token"}
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Course not found"}
+
+
+def test_delete_course_permission_denied(client, mock_delete_course_service):
+    msg = "You do not have permission to delete this course."
+    mock_delete_course_service.side_effect = PermissionError(msg)
+
+    response = client.delete(
+        "/courses/1", headers={"Authorization": "Bearer valid-token"}
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": msg}
+
+
+@pytest.fixture
+def mock_delete_lesson_service(monkeypatch):
+    delete_mock = AsyncMock(return_value="Lesson deleted successfully")
+    monkeypatch.setattr(courses, "deleting_lesson", delete_mock)
+    return delete_mock
+
+
+def test_delete_lesson_not_found_returns_404(client, mock_delete_lesson_service):
+    mock_delete_lesson_service.side_effect = ValueError("Lesson not found")
+
+    response = client.delete(
+        "/courses/1/lessons/1", headers={"Authorization": "Bearer valid-token"}
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Lesson not found"}
+
+
+def test_delete_lesson_permission_denied(client, mock_delete_lesson_service):
+    msg = "You do not have permission to delete the classes of this course."
+    mock_delete_lesson_service.side_effect = PermissionError(msg)
+
+    response = client.delete(
+        "/courses/1/lessons/1", headers={"Authorization": "Bearer valid-token"}
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": msg}
