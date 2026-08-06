@@ -59,8 +59,8 @@ class CourseCreateRequest(BaseModel):
 
 
 class LessonCreateRequest(BaseModel):
-    title: str | None = Field(default=None, max_length=255)
-    lesson_type: LessonType | None = None
+    title: str = Field(max_length=255)
+    lesson_type: LessonType
     description: str | None = None
     is_published: bool | None = None
 

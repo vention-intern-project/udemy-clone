@@ -734,3 +734,34 @@ def test_list_my_courses_requires_auth():
 
     assert response.status_code == 401
     assert response.json() == {"detail": "Could not validate credentials"}
+
+
+@pytest.fixture
+def mock_create_lesson_service(monkeypatch):
+    create_mock = AsyncMock(return_value=LessonFactory())
+    monkeypatch.setattr(courses, "create_lesson", create_mock)
+    return create_mock
+
+
+def test_create_lesson_rejects_missing_title(client, mock_create_lesson_service):
+    """title is NOT NULL at the DB level; the schema must reject it first."""
+    response = client.post(
+        "/courses/1/lessons",
+        json={"lesson_type": "video"},
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 422
+    assert mock_create_lesson_service.await_count == 0
+
+
+def test_create_lesson_rejects_missing_lesson_type(client, mock_create_lesson_service):
+    """lesson_type is NOT NULL at the DB level; the schema must reject it first."""
+    response = client.post(
+        "/courses/1/lessons",
+        json={"title": "Intro"},
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 422
+    assert mock_create_lesson_service.await_count == 0
