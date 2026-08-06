@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import (
@@ -87,6 +87,29 @@ async def creating_course(
         ) from None
 
     return course
+
+
+@router.get("/my", response_model=CourseListResponse)
+async def list_my_courses(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    filters: CourseFilters = Depends(),
+    instructor: User = Depends(get_current_instructor),
+    session: AsyncSession = Depends(get_db),
+):
+    """Courses owned by the caller.
+
+    Ownership is taken from the token, so there is no way to request another
+    instructor's courses.
+    """
+    return await get_courses_list(
+        session,
+        page,
+        page_size,
+        filters,
+        viewer_id=instructor.id,
+        instructor_id=instructor.id,
+    )
 
 
 @router.get(

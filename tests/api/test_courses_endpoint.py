@@ -590,3 +590,133 @@ def test_create_course_rejects_token_of_deleted_user(
     assert response.status_code == 401
     assert response.json() == {"detail": "Could not validate credentials"}
     assert mock_create_course_service.await_count == 0
+
+
+def test_list_my_courses_scopes_to_the_authenticated_instructor(
+    client, mock_instructor_lookup, mock_list_service, empty_list_response
+):
+    instructor = UserFactory(role=UserRole.INSTRUCTOR)
+    mock_instructor_lookup.return_value = instructor
+    mock_list_service.return_value = empty_list_response
+
+    response = client.get(
+        "/courses/my",
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 200
+    assert mock_list_service.await_args.kwargs["instructor_id"] == instructor.id
+    assert mock_list_service.await_args.kwargs["viewer_id"] == instructor.id
+
+
+def test_list_my_courses_ignores_instructor_id_query_param(
+    client, mock_instructor_lookup, mock_list_service, empty_list_response
+):
+    """Ownership comes from the token, so a forged query param must not widen it."""
+    instructor = UserFactory(role=UserRole.INSTRUCTOR)
+    mock_instructor_lookup.return_value = instructor
+    mock_list_service.return_value = empty_list_response
+
+    response = client.get(
+        "/courses/my?instructor_id=999999",
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 200
+    assert mock_list_service.await_args.kwargs["instructor_id"] == instructor.id
+
+
+def test_list_my_courses_returns_page_metadata(
+    client, mock_instructor_lookup, mock_list_service
+):
+    instructor = UserFactory(role=UserRole.INSTRUCTOR)
+    mock_instructor_lookup.return_value = instructor
+    course = CourseFactory(instructor=instructor, lessons=[LessonFactory()])
+    mock_list_service.return_value = CourseListResponse(
+        items=[CourseListItemResponse.model_validate(course)],
+        page=1,
+        page_size=20,
+        total=1,
+        pages=1,
+        has_next=False,
+        has_previous=False,
+    )
+
+    response = client.get(
+        "/courses/my",
+        headers={"Authorization": "Bearer valid-token"},
+    )
+    body = response.json()
+
+    assert response.status_code == 200
+    assert body["items"][0]["id"] == course.id
+    assert body["page"] == 1
+    assert body["page_size"] == 20
+    assert body["total"] == 1
+    assert body["pages"] == 1
+    assert body["has_next"] is False
+    assert body["has_previous"] is False
+
+
+def test_list_my_courses_defaults_to_first_page_of_twenty(
+    client, mock_instructor_lookup, mock_list_service, empty_list_response
+):
+    mock_list_service.return_value = empty_list_response
+
+    client.get("/courses/my", headers={"Authorization": "Bearer valid-token"})
+
+    assert mock_list_service.await_args.args[1] == 1
+    assert mock_list_service.await_args.args[2] == 20
+
+
+def test_list_my_courses_rejects_page_below_one(
+    client, mock_instructor_lookup, mock_list_service
+):
+    response = client.get(
+        "/courses/my?page=0",
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 422
+    assert mock_list_service.await_count == 0
+
+
+def test_list_my_courses_rejects_page_size_above_the_cap(
+    client, mock_instructor_lookup, mock_list_service
+):
+    response = client.get(
+        "/courses/my?page_size=101",
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 422
+    assert mock_list_service.await_count == 0
+
+
+def test_list_my_courses_rejects_student(
+    client, mock_instructor_lookup, mock_list_service
+):
+    mock_instructor_lookup.return_value = UserFactory(role=UserRole.STUDENT)
+
+    response = client.get(
+        "/courses/my",
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Only instructors can access this resource"}
+    assert mock_list_service.await_count == 0
+
+
+def test_list_my_courses_requires_auth():
+    async def override_get_db():
+        yield AsyncMock()
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides.pop(get_current_user_id, None)
+    with TestClient(app) as c:
+        response = c.get("/courses/my")
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Could not validate credentials"}
