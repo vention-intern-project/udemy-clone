@@ -65,10 +65,14 @@ async def get_all_courses(
     page: int,
     page_size: int,
     filters: CourseFilters,
+    instructor_id: int | None = None,
 ) -> tuple[Sequence[Any], Any | None]:
     offset = (page - 1) * page_size
 
     filter_conditions = []
+
+    if instructor_id is not None:
+        filter_conditions.append(Course.instructor_id == instructor_id)
 
     if filters.search_query:
         filter_conditions.append(build_search_condition(filters.search_query))

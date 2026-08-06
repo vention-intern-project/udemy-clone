@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
+from app.api.v1 import dependencies
 from app.api.v1.dependencies import get_current_user_id, optional_current_user_id
 from app.api.v1.endpoints import courses
 from app.db.database import get_db
@@ -530,3 +531,310 @@ def test_list_lessons_excludes_drafts_for_student(
 
     assert response.status_code == 200
     assert include_unpublished_arg(list_lessons_mock) is False
+
+
+@pytest.fixture
+def mock_instructor_lookup(monkeypatch):
+    """Patch the user lookup behind the get_current_instructor dependency."""
+    get_user_mock = AsyncMock(return_value=UserFactory(role=UserRole.INSTRUCTOR))
+    monkeypatch.setattr(dependencies, "get_user_by_id", get_user_mock)
+    return get_user_mock
+
+
+@pytest.fixture
+def mock_create_course_service(monkeypatch):
+    create_mock = AsyncMock(return_value=CourseFactory())
+    monkeypatch.setattr(courses, "create_course", create_mock)
+    return create_mock
+
+
+def test_create_course_allows_instructor(
+    client, mock_instructor_lookup, mock_create_course_service
+):
+    response = client.post(
+        "/courses",
+        json={"title": "New course", "price": "10.00", "currency": "USD"},
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 200
+    assert mock_create_course_service.await_count == 1
+
+
+def test_create_course_rejects_student(
+    client, mock_instructor_lookup, mock_create_course_service
+):
+    mock_instructor_lookup.return_value = UserFactory(role=UserRole.STUDENT)
+
+    response = client.post(
+        "/courses",
+        json={"title": "New course", "price": "10.00", "currency": "USD"},
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 403
+    assert mock_create_course_service.await_count == 0
+
+
+def test_create_course_rejects_token_of_deleted_user(
+    client, mock_instructor_lookup, mock_create_course_service
+):
+    mock_instructor_lookup.return_value = None
+
+    response = client.post(
+        "/courses",
+        json={"title": "New course", "price": "10.00", "currency": "USD"},
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Could not validate credentials"}
+    assert mock_create_course_service.await_count == 0
+
+
+def test_create_course_rejects_missing_title(
+    client, mock_instructor_lookup, mock_create_course_service
+):
+    """title is NOT NULL at the DB level; the schema must reject it first."""
+    response = client.post(
+        "/courses",
+        json={"price": "10.00", "currency": "USD"},
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 422
+    assert mock_create_course_service.await_count == 0
+
+
+def test_list_my_courses_scopes_to_the_authenticated_instructor(
+    client, mock_instructor_lookup, mock_list_service, empty_list_response
+):
+    instructor = UserFactory(role=UserRole.INSTRUCTOR)
+    mock_instructor_lookup.return_value = instructor
+    mock_list_service.return_value = empty_list_response
+
+    response = client.get(
+        "/courses/my",
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 200
+    assert mock_list_service.await_args.kwargs["instructor_id"] == instructor.id
+    assert mock_list_service.await_args.kwargs["viewer_id"] == instructor.id
+
+
+def test_list_my_courses_ignores_instructor_id_query_param(
+    client, mock_instructor_lookup, mock_list_service, empty_list_response
+):
+    """Ownership comes from the token, so a forged query param must not widen it."""
+    instructor = UserFactory(role=UserRole.INSTRUCTOR)
+    mock_instructor_lookup.return_value = instructor
+    mock_list_service.return_value = empty_list_response
+
+    response = client.get(
+        "/courses/my?instructor_id=999999",
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 200
+    assert mock_list_service.await_args.kwargs["instructor_id"] == instructor.id
+
+
+def test_list_my_courses_returns_page_metadata(
+    client, mock_instructor_lookup, mock_list_service
+):
+    instructor = UserFactory(role=UserRole.INSTRUCTOR)
+    mock_instructor_lookup.return_value = instructor
+    course = CourseFactory(instructor=instructor, lessons=[LessonFactory()])
+    mock_list_service.return_value = CourseListResponse(
+        items=[CourseListItemResponse.model_validate(course)],
+        page=1,
+        page_size=20,
+        total=1,
+        pages=1,
+        has_next=False,
+        has_previous=False,
+    )
+
+    response = client.get(
+        "/courses/my",
+        headers={"Authorization": "Bearer valid-token"},
+    )
+    body = response.json()
+
+    assert response.status_code == 200
+    assert body["items"][0]["id"] == course.id
+    assert body["page"] == 1
+    assert body["page_size"] == 20
+    assert body["total"] == 1
+    assert body["pages"] == 1
+    assert body["has_next"] is False
+    assert body["has_previous"] is False
+
+
+def test_list_my_courses_defaults_to_first_page_of_twenty(
+    client, mock_instructor_lookup, mock_list_service, empty_list_response
+):
+    mock_list_service.return_value = empty_list_response
+
+    client.get("/courses/my", headers={"Authorization": "Bearer valid-token"})
+
+    assert mock_list_service.await_args.args[1] == 1
+    assert mock_list_service.await_args.args[2] == 20
+
+
+def test_list_my_courses_rejects_page_below_one(
+    client, mock_instructor_lookup, mock_list_service
+):
+    response = client.get(
+        "/courses/my?page=0",
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 422
+    assert mock_list_service.await_count == 0
+
+
+def test_list_my_courses_rejects_page_size_above_the_cap(
+    client, mock_instructor_lookup, mock_list_service
+):
+    response = client.get(
+        "/courses/my?page_size=101",
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 422
+    assert mock_list_service.await_count == 0
+
+
+def test_list_my_courses_rejects_student(
+    client, mock_instructor_lookup, mock_list_service
+):
+    mock_instructor_lookup.return_value = UserFactory(role=UserRole.STUDENT)
+
+    response = client.get(
+        "/courses/my",
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Only instructors can access this resource"}
+    assert mock_list_service.await_count == 0
+
+
+def test_list_my_courses_requires_auth():
+    async def override_get_db():
+        yield AsyncMock()
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides.pop(get_current_user_id, None)
+    with TestClient(app) as c:
+        response = c.get("/courses/my")
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Could not validate credentials"}
+
+
+@pytest.fixture
+def mock_create_lesson_service(monkeypatch):
+    create_mock = AsyncMock(return_value=LessonFactory())
+    monkeypatch.setattr(courses, "create_lesson", create_mock)
+    return create_mock
+
+
+def test_create_lesson_rejects_missing_title(client, mock_create_lesson_service):
+    """title is NOT NULL at the DB level; the schema must reject it first."""
+    response = client.post(
+        "/courses/1/lessons",
+        json={"lesson_type": "video"},
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 422
+    assert mock_create_lesson_service.await_count == 0
+
+
+def test_create_lesson_rejects_missing_lesson_type(client, mock_create_lesson_service):
+    """lesson_type is NOT NULL at the DB level; the schema must reject it first."""
+    response = client.post(
+        "/courses/1/lessons",
+        json={"title": "Intro"},
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 422
+    assert mock_create_lesson_service.await_count == 0
+
+
+def test_create_lesson_course_not_found_returns_404(client, mock_create_lesson_service):
+    mock_create_lesson_service.side_effect = ValueError("Course not found")
+
+    response = client.post(
+        "/courses/1/lessons",
+        json={"title": "Intro", "lesson_type": "video"},
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Course not found"}
+
+
+@pytest.fixture
+def mock_delete_course_service(monkeypatch):
+    delete_mock = AsyncMock(return_value="Course deleted successfully")
+    monkeypatch.setattr(courses, "deleting_course", delete_mock)
+    return delete_mock
+
+
+def test_delete_course_not_found_returns_404(client, mock_delete_course_service):
+    mock_delete_course_service.side_effect = ValueError("Course not found")
+
+    response = client.delete(
+        "/courses/1", headers={"Authorization": "Bearer valid-token"}
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Course not found"}
+
+
+def test_delete_course_permission_denied(client, mock_delete_course_service):
+    msg = "You do not have permission to delete this course."
+    mock_delete_course_service.side_effect = PermissionError(msg)
+
+    response = client.delete(
+        "/courses/1", headers={"Authorization": "Bearer valid-token"}
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": msg}
+
+
+@pytest.fixture
+def mock_delete_lesson_service(monkeypatch):
+    delete_mock = AsyncMock(return_value="Lesson deleted successfully")
+    monkeypatch.setattr(courses, "deleting_lesson", delete_mock)
+    return delete_mock
+
+
+def test_delete_lesson_not_found_returns_404(client, mock_delete_lesson_service):
+    mock_delete_lesson_service.side_effect = ValueError("Lesson not found")
+
+    response = client.delete(
+        "/courses/1/lessons/1", headers={"Authorization": "Bearer valid-token"}
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Lesson not found"}
+
+
+def test_delete_lesson_permission_denied(client, mock_delete_lesson_service):
+    msg = "You do not have permission to delete the classes of this course."
+    mock_delete_lesson_service.side_effect = PermissionError(msg)
+
+    response = client.delete(
+        "/courses/1/lessons/1", headers={"Authorization": "Bearer valid-token"}
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": msg}
