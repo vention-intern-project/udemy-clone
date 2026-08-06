@@ -592,6 +592,20 @@ def test_create_course_rejects_token_of_deleted_user(
     assert mock_create_course_service.await_count == 0
 
 
+def test_create_course_rejects_missing_title(
+    client, mock_instructor_lookup, mock_create_course_service
+):
+    """title is NOT NULL at the DB level; the schema must reject it first."""
+    response = client.post(
+        "/courses",
+        json={"price": "10.00", "currency": "USD"},
+        headers={"Authorization": "Bearer valid-token"},
+    )
+
+    assert response.status_code == 422
+    assert mock_create_course_service.await_count == 0
+
+
 def test_list_my_courses_scopes_to_the_authenticated_instructor(
     client, mock_instructor_lookup, mock_list_service, empty_list_response
 ):

@@ -52,7 +52,7 @@ class LessonResponse(BaseModel):
 
 
 class CourseCreateRequest(BaseModel):
-    title: str | None = Field(default=None, max_length=255)
+    title: str = Field(max_length=255)
     description: str | None = None
     price: Decimal | None = Field(default=None, ge=0)
     currency: str | None = Field(default=None, min_length=3, max_length=3)
