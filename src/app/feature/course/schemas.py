@@ -1,9 +1,10 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.feature.course.models import LessonType, SubtitleStatusType
+from app.feature.course.models import LessonType, SubtitleStatusType, UploadStatusType
 
 
 class CourseUpdateRequest(BaseModel):
@@ -169,3 +170,18 @@ class CourseFilters(BaseModel):
     min_price: float | None = None
     max_price: float | None = None
     sort: str | None = None
+
+
+class LessonUploadResponse(BaseModel):
+    lesson_id: int
+    upload_id: str
+    status: Literal["queued"]
+    detail: str
+
+
+class LessonUploadStatusResponse(BaseModel):
+    upload_id: str
+    lesson_id: int
+    status: UploadStatusType
+    failure_reason: str | None
+    updated_at: datetime
