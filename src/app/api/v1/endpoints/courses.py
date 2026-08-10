@@ -459,7 +459,7 @@ async def list_course_reviews(
     return result
 
 
-@router.patch("/{course_id}/reviews")
+@router.patch("/{course_id}/reviews", response_model=ReviewResponse)
 async def updating_review(
     course_id: int,
     payload: ReviewUpdate,
