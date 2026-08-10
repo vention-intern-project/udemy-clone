@@ -418,12 +418,12 @@ async def creating_review(
         review = await create_review(session, user_id, course_id, payload)
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
         ) from None
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         ) from None
 
