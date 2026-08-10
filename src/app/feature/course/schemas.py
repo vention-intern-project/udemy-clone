@@ -80,6 +80,9 @@ class LessonDetailResponse(BaseModel):
     title: str
     lesson_type: LessonType
     download_url: str | None
+    subtitle_status: SubtitleStatusType
+    subtitles_path: str | None
+    transcript_path: str | None
     description: str | None
     is_published: bool
     created_at: datetime
@@ -142,6 +145,9 @@ class LessonListItemResponse(BaseModel):
     title: str
     lesson_type: LessonType
     download_url: str | None
+    subtitle_status: SubtitleStatusType
+    subtitles_path: str | None
+    transcript_path: str | None
     description: str | None
     is_published: bool
     created_at: datetime
