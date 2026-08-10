@@ -1,13 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pathlib import Path
+
+from app.core.storage import get_media_root
+
 from app.api.v1.dependencies import (
     get_current_instructor,
     get_current_user_id,
     optional_current_user_id,
 )
 from app.db.database import get_db
-from app.feature.course.repository import get_course_by_id
+from app.feature.course.repository import get_course_by_id, get_lesson_by_id
 from app.feature.course.schemas import (
     CourseCreateRequest,
     CourseDetailResponse,
@@ -57,6 +61,8 @@ from app.feature.review.service import (
     update_review,
 )
 from app.feature.user.models import User
+
+from fastapi.responses import FileResponse
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 
@@ -527,3 +533,42 @@ async def get_users_course_review(
         ) from None
 
     return result
+
+
+@router.get(
+    "/{course_id}/lessons/{lesson_id}/subtitles"
+)
+async def download_subtitles(
+    lesson_id: int,
+    session: AsyncSession = Depends(get_db),
+):
+    lesson = await get_lesson_by_id(session, lesson_id)
+
+    if lesson is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Lesson not found",
+        )
+
+    if not lesson.subtitles_path:
+        raise HTTPException(
+            status_code=404,
+            detail="Subtitles are not available",
+        )
+
+    subtitle_path = Path(lesson.subtitles_path)
+
+    if not subtitle_path.is_absolute():
+        subtitle_path = get_media_root() / subtitle_path
+
+    if not subtitle_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Subtitle file not found",
+        )
+
+    return FileResponse(
+        path=subtitle_path,
+        media_type="text/vtt",
+        filename=f"lesson_{lesson_id}_subtitles.vtt",
+    )
