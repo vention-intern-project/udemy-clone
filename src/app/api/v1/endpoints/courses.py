@@ -1,15 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from pathlib import Path
 
-from app.core.storage import get_media_root
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import FileResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import (
     get_current_instructor,
     get_current_user_id,
     optional_current_user_id,
 )
+from app.core.storage import get_media_root
 from app.db.database import get_db
 from app.feature.course.repository import get_course_by_id, get_lesson_by_id
 from app.feature.course.schemas import (
@@ -61,8 +61,6 @@ from app.feature.review.service import (
     update_review,
 )
 from app.feature.user.models import User
-
-from fastapi.responses import FileResponse
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 
@@ -535,9 +533,7 @@ async def get_users_course_review(
     return result
 
 
-@router.get(
-    "/{course_id}/lessons/{lesson_id}/subtitles"
-)
+@router.get("/{course_id}/lessons/{lesson_id}/subtitles")
 async def download_subtitles(
     lesson_id: int,
     session: AsyncSession = Depends(get_db),
