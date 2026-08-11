@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from app.api.v1.dependencies import get_current_user_id
 from app.api.v1.endpoints import lessons, media
 from app.db.database import get_db
-from app.feature.course.models import LessonType, SubtitleStatusType
+from app.feature.course.models import LessonType, SubtitleStatusType, UploadStatusType
 from app.main import app
 
 from .factories import CourseFactory, LessonFactory
@@ -82,7 +82,7 @@ def test_upload_instructor_only(client, mock_upload_service, video_lesson):
     assert "permission" in response.json()["detail"].lower()
 
 
-def test_upload_returns_download_url(
+def test_upload_returns_upload_id_and_status(
     client, mock_upload_service, video_lesson, monkeypatch
 ):
     get_detail, upload = mock_upload_service
@@ -93,10 +93,12 @@ def test_upload_returns_download_url(
         lesson_type=LessonType.VIDEO,
         file_url="lessons/video/abc123.mp4",
         subtitle_status=SubtitleStatusType.PENDING,
+        upload_id="generated-upload-id",
     )
     upload.return_value = updated_lesson
 
     monkeypatch.setattr(lessons.generate_subtitles, "delay", MagicMock())
+    monkeypatch.setattr(lessons.finalize_lesson_upload, "delay", MagicMock())
 
     monkeypatch.setattr(
         lessons, "save_file", AsyncMock(return_value="lessons/video/abc123.mp4")
@@ -109,8 +111,12 @@ def test_upload_returns_download_url(
 
     assert response.status_code == 200
     data = response.json()
-    assert "download_url" in data
-    assert data["download_url"] == "/media/lessons/abc123.mp4"
+    assert data == {
+        "lesson_id": 1,
+        "upload_id": "generated-upload-id",
+        "status": "queued",
+        "detail": "File accepted and queued for processing",
+    }
 
 
 def test_upload_wrong_file_type(client, mock_upload_service, video_lesson, monkeypatch):
@@ -181,3 +187,43 @@ def test_download_not_found(client, tmp_path, monkeypatch):
 
     assert response.status_code == 404
     assert response.json() == {"detail": "File not found"}
+
+
+def test_upload_status_requires_auth(no_auth_client):
+    response = no_auth_client.get("/lessons/uploads/some-id/status")
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Could not validate credentials"}
+
+
+def test_upload_status_unknown_id_returns_404(client, monkeypatch):
+    monkeypatch.setattr(
+        lessons,
+        "get_lesson_upload_status",
+        AsyncMock(side_effect=ValueError("Upload not found")),
+    )
+
+    response = client.get("/lessons/uploads/unknown-id/status")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Upload not found"}
+
+
+def test_upload_status_returns_current_state(client, monkeypatch):
+    lesson = LessonFactory(
+        id=1,
+        upload_id="generated-upload-id",
+        upload_status=UploadStatusType.PROCESSING,
+        upload_failure_reason=None,
+    )
+    monkeypatch.setattr(
+        lessons, "get_lesson_upload_status", AsyncMock(return_value=lesson)
+    )
+
+    response = client.get("/lessons/uploads/generated-upload-id/status")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["upload_id"] == "generated-upload-id"
+    assert data["lesson_id"] == 1
+    assert data["status"] == "processing"
+    assert data["failure_reason"] is None

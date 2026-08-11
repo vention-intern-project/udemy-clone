@@ -11,15 +11,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.dependencies import get_current_user_id, optional_current_user_id
 from app.core.storage import delete_file, save_file
 from app.db.database import get_db
-from app.feature.course.schemas import LessonResponse, LessonUpdateRequest
+from app.feature.course.models import LessonType
+from app.feature.course.schemas import (
+    LessonResponse,
+    LessonUpdateRequest,
+    LessonUploadResponse,
+    LessonUploadStatusResponse,
+)
 from app.feature.course.service import (
     get_lesson_detail,
+    get_lesson_upload_status,
     update_lesson,
     upload_lesson_file,
 )
 from app.feature.enrollment.repository import get_active_enrollment_by_course
 from app.feature.knowledge.service import process_lesson_upload
 from app.tasks.subtitles import generate_subtitles
+from app.tasks.uploads import finalize_lesson_upload
 
 router = APIRouter(prefix="/lessons", tags=["lessons"])
 
@@ -78,7 +86,30 @@ async def patch_lesson(
     return lesson
 
 
-@router.post("/{lesson_id}/upload-file", response_model=LessonResponse)
+@router.get("/uploads/{upload_id}/status", response_model=LessonUploadStatusResponse)
+async def get_upload_status(
+    upload_id: str,
+    user_id: int = Depends(get_current_user_id),
+    session: AsyncSession = Depends(get_db),
+):
+    try:
+        lesson = await get_lesson_upload_status(session, upload_id, user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Upload not found",
+        ) from None
+
+    return LessonUploadStatusResponse(
+        upload_id=lesson.upload_id,
+        lesson_id=lesson.id,
+        status=lesson.upload_status,
+        failure_reason=lesson.upload_failure_reason,
+        updated_at=lesson.updated_at,
+    )
+
+
+@router.post("/{lesson_id}/upload-file", response_model=LessonUploadResponse)
 async def upload_file(
     lesson_id: int,
     file: UploadFile,
@@ -113,7 +144,9 @@ async def upload_file(
 
     try:
         updated_lesson = await upload_lesson_file(session, lesson_id, user_id, file_url)
-        generate_subtitles.delay(lesson_id)
+        if lesson.lesson_type == LessonType.VIDEO:
+            generate_subtitles.delay(lesson_id)
+        finalize_lesson_upload.delay(lesson_id, updated_lesson.upload_id)
     except PermissionError as e:
         delete_file(file_url)
         raise HTTPException(
@@ -141,4 +174,9 @@ async def upload_file(
         description=lesson.description,
     )
 
-    return updated_lesson
+    return LessonUploadResponse(
+        lesson_id=updated_lesson.id,
+        upload_id=updated_lesson.upload_id,
+        status="queued",
+        detail="File accepted and queued for processing",
+    )

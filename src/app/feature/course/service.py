@@ -1,9 +1,10 @@
 import math
+import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.storage import delete_file
-from app.feature.course.models import Course, Lesson
+from app.feature.course.models import Course, Lesson, UploadStatusType
 from app.feature.course.repository import (
     delete_course,
     delete_lesson,
@@ -11,6 +12,7 @@ from app.feature.course.repository import (
     get_course_by_id,
     get_course_with_lessons,
     get_lesson_by_id,
+    get_lesson_by_upload_id,
     list_lessons,
 )
 from app.feature.course.schemas import (
@@ -174,6 +176,9 @@ async def upload_lesson_file(
         )
 
     lesson.file_url = file_url
+    lesson.upload_id = uuid.uuid4().hex
+    lesson.upload_status = UploadStatusType.QUEUED
+    lesson.upload_failure_reason = None
 
     await session.commit()
     await session.refresh(lesson)
@@ -279,6 +284,24 @@ async def get_courses_list(
         has_next=page < pages,
         has_previous=page > 1,
     )
+
+
+async def get_lesson_upload_status(
+    session: AsyncSession,
+    upload_id: str,
+    user_id: int,
+) -> Lesson:
+    lesson = await get_lesson_by_upload_id(session, upload_id)
+
+    if lesson is None:
+        raise ValueError("Upload not found")
+
+    is_admin = await is_admin_user(session, user_id)
+
+    if lesson.course.instructor_id != user_id and not is_admin:
+        raise ValueError("Upload not found")
+
+    return lesson
 
 
 async def get_list_lessons(

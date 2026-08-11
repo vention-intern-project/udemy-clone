@@ -33,6 +33,13 @@ class SubtitleStatusType(enum.StrEnum):
     FAILED = "failed"
 
 
+class UploadStatusType(enum.StrEnum):
+    QUEUED = "queued"
+    PROCESSING = "processing"
+    READY = "ready"
+    FAILED = "failed"
+
+
 class Course(Base):
     __tablename__ = "courses"
 
@@ -102,6 +109,16 @@ class Lesson(Base):
         Enum(SubtitleStatusType, name="subtitlestatustype"),
         default=SubtitleStatusType.PENDING,
         nullable=False,
+    )
+    upload_id: Mapped[str | None] = mapped_column(
+        String(32), unique=True, index=True, nullable=True
+    )
+    upload_status: Mapped[UploadStatusType | None] = mapped_column(
+        Enum(UploadStatusType, name="uploadstatustype"),
+        nullable=True,
+    )
+    upload_failure_reason: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
     )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_published: Mapped[bool] = mapped_column(

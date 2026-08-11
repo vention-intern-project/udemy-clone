@@ -35,6 +35,17 @@ async def get_lesson_by_id(session: AsyncSession, lesson_id: int) -> Lesson | No
     return result.scalar_one_or_none()
 
 
+async def get_lesson_by_upload_id(
+    session: AsyncSession, upload_id: str
+) -> Lesson | None:
+    result = await session.execute(
+        select(Lesson)
+        .options(selectinload(Lesson.course))
+        .where(Lesson.upload_id == upload_id)
+    )
+    return result.scalar_one_or_none()
+
+
 async def delete_course(session: AsyncSession, course: Course) -> None:
     await session.delete(course)
     await session.commit()
