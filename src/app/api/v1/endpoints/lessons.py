@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.dependencies import get_current_user_id, optional_current_user_id
 from app.core.storage import delete_file, save_file
 from app.db.database import get_db
+from app.feature.course.models import LessonType
 from app.feature.course.schemas import (
     LessonResponse,
     LessonUpdateRequest,
@@ -143,7 +144,8 @@ async def upload_file(
 
     try:
         updated_lesson = await upload_lesson_file(session, lesson_id, user_id, file_url)
-        generate_subtitles.delay(lesson_id)
+        if lesson.lesson_type == LessonType.VIDEO:
+            generate_subtitles.delay(lesson_id)
         finalize_lesson_upload.delay(lesson_id, updated_lesson.upload_id)
     except PermissionError as e:
         delete_file(file_url)
