@@ -68,7 +68,7 @@ router = APIRouter(prefix="/courses", tags=["courses"])
 @router.get("", response_model=CourseListResponse)
 async def list_courses(
     page: int = 1,
-    page_size: int = 100,
+    page_size: int = 24,
     filters: CourseFilters = Depends(),
     user_id: int | None = Depends(optional_current_user_id),
     session: AsyncSession = Depends(get_db),

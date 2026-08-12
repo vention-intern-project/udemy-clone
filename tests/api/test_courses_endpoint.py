@@ -229,7 +229,7 @@ def test_list_courses_with_search_query(client, mock_list_service, empty_list_re
     _, arg_page, arg_page_size, arg_filters = mock_list_service.call_args.args
 
     assert arg_page == 1
-    assert arg_page_size == 100
+    assert arg_page_size == 24
     assert arg_filters.search_query == "python"
 
 
@@ -247,7 +247,7 @@ def test_list_courses_without_query_returns_all(
     _, arg_page, arg_page_size, arg_filters = mock_list_service.call_args.args
 
     assert arg_page == 1
-    assert arg_page_size == 100
+    assert arg_page_size == 24
     assert arg_filters.search_query is None
 
 
