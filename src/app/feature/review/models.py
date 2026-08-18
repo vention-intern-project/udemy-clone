@@ -19,7 +19,7 @@ class Review(Base):
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
 
-    rating: Mapped[float] = mapped_column(nullable=False)
+    rating: Mapped[int] = mapped_column(nullable=False)
 
     comment: Mapped[str] = mapped_column(default="")
 

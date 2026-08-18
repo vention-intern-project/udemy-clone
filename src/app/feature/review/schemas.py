@@ -4,10 +4,10 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 
 Rating = Annotated[
-    float,
+    int,
     Field(
-        ge=0.0,
-        le=5.0,
+        ge=1,
+        le=5,
         description="Rating must be a number between 1 and 5.",
         examples=[5],
     ),

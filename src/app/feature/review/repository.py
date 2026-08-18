@@ -65,6 +65,6 @@ async def get_rating_stats(session: AsyncSession, course_id: int):
     average, count = result.one()
 
     return {
-        "average_rating": float(average) if average else 0,
+        "average_rating": float(average) if average else None,
         "review_count": count,
     }
