@@ -156,11 +156,10 @@ def test_download_returns_file(client, tmp_path, monkeypatch):
     mock_lesson = LessonFactory(
         id=1,
         lesson_type=LessonType.VIDEO,
-        file_url="lessons/video/abc123.mp4",
         course=CourseFactory(instructor_id=1),
     )
     monkeypatch.setattr(
-        media, "get_lesson_by_file_url", AsyncMock(return_value=mock_lesson)
+        media, "get_lesson_by_storage_key", AsyncMock(return_value=mock_lesson)
     )
     monkeypatch.setattr(
         media, "get_active_enrollment_by_course", AsyncMock(return_value=None)
@@ -179,7 +178,9 @@ def test_download_not_found(client, tmp_path, monkeypatch):
     empty_dir = tmp_path / "lessons"
     empty_dir.mkdir(parents=True)
 
-    monkeypatch.setattr(media, "get_lesson_by_file_url", AsyncMock(return_value=None))
+    monkeypatch.setattr(
+        media, "get_lesson_by_storage_key", AsyncMock(return_value=None)
+    )
 
     with patch.object(media, "settings") as mock_settings:
         mock_settings.MEDIA_ROOT = str(tmp_path)
