@@ -4,15 +4,16 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.storage import delete_file
-from app.feature.course.models import Course, Lesson, UploadStatusType
+from app.feature.course.models import Course, Lesson, LessonAsset, ProcessingJob
 from app.feature.course.repository import (
     delete_course,
     delete_lesson,
     get_all_courses,
+    get_asset_by_upload_id,
     get_course_by_id,
     get_course_with_lessons,
     get_lesson_by_id,
-    get_lesson_by_upload_id,
+    get_next_asset_version,
     list_lessons,
 )
 from app.feature.course.schemas import (
@@ -162,7 +163,10 @@ async def upload_lesson_file(
     lesson_id: int,
     user_id: int,
     file_url: str,
-) -> Lesson:
+    checksum: str,
+    content_type: str,
+    size: int,
+) -> tuple[LessonAsset, ProcessingJob, ProcessingJob]:
     lesson = await get_lesson_by_id(session, lesson_id)
 
     if lesson is None:
@@ -175,14 +179,30 @@ async def upload_lesson_file(
             "You do not have permission to upload files to this lesson."
         )
 
-    lesson.file_url = file_url
-    lesson.upload_id = uuid.uuid4().hex
-    lesson.upload_status = UploadStatusType.QUEUED
-    lesson.upload_failure_reason = None
+    version = await get_next_asset_version(session, lesson_id)
+    asset = LessonAsset(
+        lesson_id=lesson_id,
+        upload_id=uuid.uuid4().hex,
+        version=version,
+        storage_key=file_url,
+        checksum=checksum,
+        content_type=content_type,
+        size=size,
+    )
+    session.add(asset)
+    await session.flush()
+
+    subtitle_job = ProcessingJob(
+        asset_id=asset.id, job_type="subtitle", status="queued"
+    )
+    finalize_job = ProcessingJob(
+        asset_id=asset.id, job_type="finalize", status="queued"
+    )
+    session.add_all([subtitle_job, finalize_job])
 
     await session.commit()
-    await session.refresh(lesson)
-    return lesson
+    await session.refresh(asset)
+    return asset, subtitle_job, finalize_job
 
 
 async def get_lesson_detail(
@@ -290,18 +310,18 @@ async def get_lesson_upload_status(
     session: AsyncSession,
     upload_id: str,
     user_id: int,
-) -> Lesson:
-    lesson = await get_lesson_by_upload_id(session, upload_id)
+) -> LessonAsset:
+    asset = await get_asset_by_upload_id(session, upload_id)
 
-    if lesson is None:
+    if asset is None:
         raise ValueError("Upload not found")
 
     is_admin = await is_admin_user(session, user_id)
 
-    if lesson.course.instructor_id != user_id and not is_admin:
+    if asset.lesson.course.instructor_id != user_id and not is_admin:
         raise ValueError("Upload not found")
 
-    return lesson
+    return asset
 
 
 async def get_list_lessons(

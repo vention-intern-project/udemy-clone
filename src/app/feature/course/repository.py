@@ -54,6 +54,13 @@ async def get_asset_by_upload_id(
     return result.scalar_one_or_none()
 
 
+async def get_next_asset_version(session: AsyncSession, lesson_id: int) -> int:
+    current_max = await session.scalar(
+        select(func.max(LessonAsset.version)).where(LessonAsset.lesson_id == lesson_id)
+    )
+    return (current_max or 0) + 1
+
+
 async def delete_course(session: AsyncSession, course: Course) -> None:
     await session.delete(course)
     await session.commit()
