@@ -1,51 +1,39 @@
-from sqlalchemy import select
-
 from app.core.celery_con import celery_app
 from app.core.storage import get_media_root
 from app.db.sync_database import SessionLocal
-from app.feature.course.models import Lesson
+from app.feature.course.models import ProcessingJob
 from app.feature.subtitle.service import SubtitleService
 
 
-def delete_if_exists(path: str | None):
-    if not path:
-        return
-
-    file = get_media_root() / path
-    file.unlink(missing_ok=True)
-
-
 @celery_app.task
-def generate_subtitles(lesson_id: int):
+def generate_subtitles(job_id: int):
     with SessionLocal() as session:
-        lesson = session.scalar(select(Lesson).where(Lesson.id == lesson_id))
+        job = session.get(ProcessingJob, job_id)
 
-        if lesson is None:
+        if job is None or job.job_type != "subtitle":
             return
 
-        lesson.subtitle_status = "processing"
+        asset = job.asset
+
+        job.status = "processing"
         session.commit()
 
         try:
             service = SubtitleService()
-
-            video_path = get_media_root() / lesson.file_url
-            if lesson.subtitles_path is not None:
-                delete_if_exists(lesson.subtitles_path)
-                delete_if_exists(lesson.subtitles_path.replace(".vtt", ".srt"))
-            delete_if_exists(lesson.transcript_path)
+            video_path = get_media_root() / asset.storage_key
 
             result = service.generate(
                 str(video_path),
                 media_root=get_media_root(),
             )
 
-            lesson.subtitle_status = "completed"
-            lesson.subtitles_path = result.vtt_path
-            lesson.transcript_path = result.transcript_path
+            job.status = "completed"
+            job.result_path = result.vtt_path
+            job.transcript_path = result.transcript_path
             session.commit()
 
-        except Exception:
-            lesson.subtitle_status = "failed"
+        except Exception as e:
+            job.status = "failed"
+            job.failure_reason = str(e)
             session.commit()
             raise
