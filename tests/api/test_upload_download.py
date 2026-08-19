@@ -6,10 +6,15 @@ from fastapi.testclient import TestClient
 from app.api.v1.dependencies import get_current_user_id
 from app.api.v1.endpoints import lessons, media
 from app.db.database import get_db
-from app.feature.course.models import LessonType, SubtitleStatusType, UploadStatusType
+from app.feature.course.models import LessonType
 from app.main import app
 
-from .factories import CourseFactory, LessonFactory
+from .factories import (
+    CourseFactory,
+    LessonAssetFactory,
+    LessonFactory,
+    ProcessingJobFactory,
+)
 
 
 @pytest.fixture
@@ -83,22 +88,29 @@ def test_upload_instructor_only(client, mock_upload_service, video_lesson):
 
 
 def test_upload_returns_upload_id_and_status(
-    client, mock_upload_service, video_lesson, monkeypatch
+    client, mock_upload_service, video_lesson, monkeypatch, tmp_path
 ):
     get_detail, upload = mock_upload_service
     get_detail.return_value = video_lesson
 
-    updated_lesson = LessonFactory(
+    asset = LessonAssetFactory(
         id=1,
-        lesson_type=LessonType.VIDEO,
-        file_url="lessons/video/abc123.mp4",
-        subtitle_status=SubtitleStatusType.PENDING,
+        lesson_id=1,
         upload_id="generated-upload-id",
+        version=1,
+        storage_key="lessons/video/abc123.mp4",
     )
-    upload.return_value = updated_lesson
+    subtitle_job = ProcessingJobFactory(id=1, asset=asset, job_type="subtitle")
+    finalize_job = ProcessingJobFactory(id=2, asset=asset, job_type="finalize")
+    upload.return_value = (asset, subtitle_job, finalize_job)
 
     monkeypatch.setattr(lessons.generate_subtitles, "delay", MagicMock())
     monkeypatch.setattr(lessons.finalize_lesson_upload, "delay", MagicMock())
+
+    media_dir = tmp_path / "lessons" / "video"
+    media_dir.mkdir(parents=True)
+    (media_dir / "abc123.mp4").write_bytes(b"fake content")
+    monkeypatch.setattr(lessons, "get_media_root", lambda: tmp_path)
 
     monkeypatch.setattr(
         lessons, "save_file", AsyncMock(return_value="lessons/video/abc123.mp4")
@@ -210,14 +222,14 @@ def test_upload_status_unknown_id_returns_404(client, monkeypatch):
 
 
 def test_upload_status_returns_current_state(client, monkeypatch):
-    lesson = LessonFactory(
-        id=1,
-        upload_id="generated-upload-id",
-        upload_status=UploadStatusType.PROCESSING,
-        upload_failure_reason=None,
+    asset = LessonAssetFactory(
+        id=1, lesson_id=1, upload_id="generated-upload-id", version=1
     )
+    ProcessingJobFactory(asset=asset, job_type="subtitle", status="processing")
+    ProcessingJobFactory(asset=asset, job_type="finalize", status="processing")
+
     monkeypatch.setattr(
-        lessons, "get_lesson_upload_status", AsyncMock(return_value=lesson)
+        lessons, "get_lesson_upload_status", AsyncMock(return_value=asset)
     )
 
     response = client.get("/lessons/uploads/generated-upload-id/status")
@@ -226,5 +238,6 @@ def test_upload_status_returns_current_state(client, monkeypatch):
     data = response.json()
     assert data["upload_id"] == "generated-upload-id"
     assert data["lesson_id"] == 1
+    assert data["version"] == 1
     assert data["status"] == "processing"
     assert data["failure_reason"] is None

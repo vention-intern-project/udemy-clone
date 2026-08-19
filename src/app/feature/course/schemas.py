@@ -182,6 +182,9 @@ class LessonUploadResponse(BaseModel):
 class LessonUploadStatusResponse(BaseModel):
     upload_id: str
     lesson_id: int
-    status: str
+    version: int
+    status: Literal["queued", "processing", "ready", "failed"]
+    subtitle_status: str | None
+    finalize_status: str | None
     failure_reason: str | None
     updated_at: datetime
