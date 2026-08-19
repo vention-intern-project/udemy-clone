@@ -256,8 +256,8 @@ async def deleting_lesson(
             "You do not have permission to delete the classes of this course."
         )
 
-    if lesson.file_url:
-        delete_file(lesson.file_url)
+    for asset in lesson.assets:
+        delete_file(asset.storage_key)
 
     await process_lesson_delete(lesson.course_id, lesson.id)
 
