@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.dependencies import get_current_user_id
 from app.core.config import settings
 from app.db.database import get_db
-from app.feature.course.repository import get_lesson_by_file_url
+from app.feature.course.repository import get_lesson_by_storage_key
 from app.feature.enrollment.repository import get_active_enrollment_by_course
 
 router = APIRouter(tags=["media"])
@@ -32,7 +32,7 @@ async def download_lesson_file(
             detail="Invalid filename",
         )
 
-    lesson = await get_lesson_by_file_url(session, filename)
+    lesson = await get_lesson_by_storage_key(session, filename)
 
     if lesson is None:
         raise HTTPException(

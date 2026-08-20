@@ -5,9 +5,11 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from app.feature.course.models import Course, Lesson
+from app.feature.course.models import Course, Lesson, LessonAsset
 from app.feature.course.schemas import CourseFilters
 from app.feature.user.models import User
+
+LESSON_ASSET_LOAD_OPTIONS = selectinload(Lesson.assets).selectinload(LessonAsset.jobs)
 
 
 async def get_course_by_id(session: AsyncSession, course_id: int) -> Course | None:
@@ -21,7 +23,10 @@ async def get_course_with_lessons(
     result = await session.execute(
         select(Course)
         .where(Course.id == course_id)
-        .options(joinedload(Course.instructor), selectinload(Course.lessons))
+        .options(
+            joinedload(Course.instructor),
+            selectinload(Course.lessons).options(LESSON_ASSET_LOAD_OPTIONS),
+        )
     )
     return result.scalar_one_or_none()
 
@@ -29,21 +34,31 @@ async def get_course_with_lessons(
 async def get_lesson_by_id(session: AsyncSession, lesson_id: int) -> Lesson | None:
     result = await session.execute(
         select(Lesson)
-        .options(selectinload(Lesson.course))
+        .options(selectinload(Lesson.course), LESSON_ASSET_LOAD_OPTIONS)
         .where(Lesson.id == lesson_id)
     )
     return result.scalar_one_or_none()
 
 
-async def get_lesson_by_upload_id(
+async def get_asset_by_upload_id(
     session: AsyncSession, upload_id: str
-) -> Lesson | None:
+) -> LessonAsset | None:
     result = await session.execute(
-        select(Lesson)
-        .options(selectinload(Lesson.course))
-        .where(Lesson.upload_id == upload_id)
+        select(LessonAsset)
+        .options(
+            joinedload(LessonAsset.lesson).selectinload(Lesson.course),
+            selectinload(LessonAsset.jobs),
+        )
+        .where(LessonAsset.upload_id == upload_id)
     )
     return result.scalar_one_or_none()
+
+
+async def get_next_asset_version(session: AsyncSession, lesson_id: int) -> int:
+    current_max = await session.scalar(
+        select(func.max(LessonAsset.version)).where(LessonAsset.lesson_id == lesson_id)
+    )
+    return (current_max or 0) + 1
 
 
 async def delete_course(session: AsyncSession, course: Course) -> None:
@@ -119,7 +134,7 @@ async def get_all_courses(
     query = (
         base_query.options(
             joinedload(Course.instructor),
-            selectinload(Course.lessons),
+            selectinload(Course.lessons).options(LESSON_ASSET_LOAD_OPTIONS),
         )
         .order_by(sort_column.desc() if sort_desc else sort_column.asc())
         .offset(offset)
@@ -153,6 +168,7 @@ async def list_lessons(
 
     query = (
         select(Lesson)
+        .options(LESSON_ASSET_LOAD_OPTIONS)
         .where(*conditions)
         .order_by(Lesson.id)
         .offset((page - 1) * size)
@@ -172,10 +188,13 @@ async def count_course_lessons(session: AsyncSession, course_id: int) -> int:
     return total
 
 
-async def get_lesson_by_file_url(session: AsyncSession, file_url: str) -> Lesson | None:
+async def get_lesson_by_storage_key(
+    session: AsyncSession, storage_key_suffix: str
+) -> Lesson | None:
     result = await session.execute(
         select(Lesson)
-        .options(selectinload(Lesson.course))
-        .where(Lesson.file_url.ilike(f"%{file_url}"))
+        .join(LessonAsset, LessonAsset.lesson_id == Lesson.id)
+        .options(selectinload(Lesson.course), LESSON_ASSET_LOAD_OPTIONS)
+        .where(LessonAsset.storage_key.ilike(f"%{storage_key_suffix}"))
     )
     return result.scalar_one_or_none()

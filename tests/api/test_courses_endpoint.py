@@ -10,7 +10,7 @@ from app.api.v1.dependencies import get_current_user_id, optional_current_user_i
 from app.api.v1.endpoints import courses
 from app.db.database import get_db
 from app.feature.course import service as course_service
-from app.feature.course.models import LessonType, SubtitleStatusType
+from app.feature.course.models import LessonType
 from app.feature.course.schemas import (
     CourseListItemResponse,
     CourseListResponse,
@@ -440,7 +440,7 @@ def mock_lessons_service(monkeypatch):
                 title="Intro",
                 lesson_type=LessonType.PDF,
                 download_url="/media/lessons/secret.pdf",
-                subtitle_status=SubtitleStatusType.PENDING,
+                subtitle_status=False,
                 subtitles_path=None,
                 transcript_path=None,
                 description=None,

@@ -6,6 +6,14 @@ services:
     container_name: udemy_clone_api
     env_file:
       - .env
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - db
+      - redis
     volumes:
       - ./src:/app/src
     ports:

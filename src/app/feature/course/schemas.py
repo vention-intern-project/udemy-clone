@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.feature.course.models import LessonType, SubtitleStatusType, UploadStatusType
+from app.feature.course.models import LessonType
 
 
 class CourseUpdateRequest(BaseModel):
@@ -42,7 +42,7 @@ class LessonResponse(BaseModel):
     course_id: int
     title: str
     lesson_type: LessonType
-    subtitle_status: SubtitleStatusType
+    subtitle_status: bool
     subtitles_path: str | None
     transcript_path: str | None
     download_url: str | None
@@ -81,7 +81,7 @@ class LessonDetailResponse(BaseModel):
     title: str
     lesson_type: LessonType
     download_url: str | None
-    subtitle_status: SubtitleStatusType
+    subtitle_status: bool
     subtitles_path: str | None
     transcript_path: str | None
     description: str | None
@@ -146,7 +146,7 @@ class LessonListItemResponse(BaseModel):
     title: str
     lesson_type: LessonType
     download_url: str | None
-    subtitle_status: SubtitleStatusType
+    subtitle_status: bool
     subtitles_path: str | None
     transcript_path: str | None
     description: str | None
@@ -182,6 +182,9 @@ class LessonUploadResponse(BaseModel):
 class LessonUploadStatusResponse(BaseModel):
     upload_id: str
     lesson_id: int
-    status: UploadStatusType
+    version: int
+    status: Literal["queued", "processing", "ready", "failed"]
+    subtitle_status: str | None
+    finalize_status: str | None
     failure_reason: str | None
     updated_at: datetime

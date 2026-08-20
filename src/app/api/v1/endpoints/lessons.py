@@ -1,3 +1,5 @@
+import hashlib
+
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -9,7 +11,7 @@ from fastapi import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import get_current_user_id, optional_current_user_id
-from app.core.storage import delete_file, save_file
+from app.core.storage import delete_file, get_media_root, save_file
 from app.db.database import get_db
 from app.feature.course.models import LessonType
 from app.feature.course.schemas import (
@@ -93,19 +95,41 @@ async def get_upload_status(
     session: AsyncSession = Depends(get_db),
 ):
     try:
-        lesson = await get_lesson_upload_status(session, upload_id, user_id)
+        asset = await get_lesson_upload_status(session, upload_id, user_id)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Upload not found",
         ) from None
 
+    jobs_by_type = {job.job_type: job for job in asset.jobs}
+    subtitle_status = jobs_by_type.get("subtitle")
+    finalize_status = jobs_by_type.get("finalize")
+
+    statuses = [job.status for job in asset.jobs]
+    if "failed" in statuses:
+        overall = "failed"
+    elif any(s != "completed" for s in statuses):
+        overall = "processing" if any(s == "processing" for s in statuses) else "queued"
+    else:
+        overall = "ready"
+
+    failure_reason = next(
+        (job.failure_reason for job in asset.jobs if job.status == "failed"), None
+    )
+    latest_update = max(
+        (job.updated_at for job in asset.jobs), default=asset.created_at
+    )
+
     return LessonUploadStatusResponse(
-        upload_id=lesson.upload_id,
-        lesson_id=lesson.id,
-        status=lesson.upload_status,
-        failure_reason=lesson.upload_failure_reason,
-        updated_at=lesson.updated_at,
+        upload_id=asset.upload_id,
+        lesson_id=asset.lesson_id,
+        version=asset.version,
+        status=overall,
+        subtitle_status=subtitle_status.status if subtitle_status else None,
+        finalize_status=finalize_status.status if finalize_status else None,
+        failure_reason=failure_reason,
+        updated_at=latest_update,
     )
 
 
@@ -132,7 +156,6 @@ async def upload_file(
         )
 
     lesson_type = lesson.lesson_type.value
-    old_file_url = lesson.file_url
 
     try:
         file_url = await save_file(file, lesson_type)
@@ -142,11 +165,22 @@ async def upload_file(
             detail=str(e),
         ) from None
 
+    written_path = get_media_root() / file_url
+    file_bytes = written_path.read_bytes()
+
     try:
-        updated_lesson = await upload_lesson_file(session, lesson_id, user_id, file_url)
+        asset, subtitle_job, finalize_job = await upload_lesson_file(
+            session,
+            lesson_id,
+            user_id,
+            file_url,
+            checksum=hashlib.sha256(file_bytes).hexdigest(),
+            content_type=file.content_type or "application/octet-stream",
+            size=len(file_bytes),
+        )
         if lesson.lesson_type == LessonType.VIDEO:
-            generate_subtitles.delay(lesson_id)
-        finalize_lesson_upload.delay(lesson_id, updated_lesson.upload_id)
+            generate_subtitles.delay(subtitle_job.id)
+        finalize_lesson_upload.delay(finalize_job.id)
     except PermissionError as e:
         delete_file(file_url)
         raise HTTPException(
@@ -160,9 +194,6 @@ async def upload_file(
             detail=str(e),
         ) from None
 
-    if old_file_url:
-        delete_file(old_file_url)
-
     background_tasks.add_task(
         process_lesson_upload,
         course_id=lesson.course_id,
@@ -175,8 +206,8 @@ async def upload_file(
     )
 
     return LessonUploadResponse(
-        lesson_id=updated_lesson.id,
-        upload_id=updated_lesson.upload_id,
+        lesson_id=lesson_id,
+        upload_id=asset.upload_id,
         status="queued",
         detail="File accepted and queued for processing",
     )
