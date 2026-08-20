@@ -103,7 +103,7 @@ async def create_lesson(
 
     session.add(lesson)
     await session.commit()
-    await session.refresh(lesson)
+    await session.refresh(lesson, attribute_names=["assets"])
 
     return lesson
 
