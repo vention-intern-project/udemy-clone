@@ -197,6 +197,14 @@ async def get_course(
             detail="Course not found",
         )
 
+    if course.published_at is None and not await can_view_drafts(
+        session, user_id, course.instructor_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Course not found",
+        )
+
     response = CourseDetailResponse.model_validate(course)
 
     if not await can_view_drafts(session, user_id, course.instructor_id):

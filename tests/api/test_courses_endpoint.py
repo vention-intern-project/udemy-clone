@@ -841,3 +841,75 @@ def test_delete_lesson_permission_denied(client, mock_delete_lesson_service):
 
     assert response.status_code == 403
     assert response.json() == {"detail": msg}
+
+
+def test_get_course_404s_unpublished_for_anonymous(
+    client, mock_service, mock_user_lookup
+):
+    get_detail, _ = mock_service
+    get_detail.return_value = CourseFactory(published_at=None)
+
+    response = client.get("/courses/1")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Course not found"}
+    mock_user_lookup.assert_not_awaited()
+
+
+def test_get_course_404s_unpublished_for_other_student(
+    client, mock_service, mock_user_lookup
+):
+    get_detail, _ = mock_service
+    course = CourseFactory(published_at=None)
+    get_detail.return_value = course
+
+    student = UserFactory(name="Sam", role=UserRole.STUDENT)
+    mock_user_lookup.return_value = student
+    app.dependency_overrides[optional_current_user_id] = lambda: student.id
+
+    response = client.get("/courses/1")
+
+    assert response.status_code == 404
+
+
+def test_get_course_returns_unpublished_to_owning_instructor(
+    client, mock_service, mock_user_lookup
+):
+    get_detail, _ = mock_service
+    course = CourseFactory(published_at=None, title="Draft course")
+    get_detail.return_value = course
+
+    app.dependency_overrides[optional_current_user_id] = lambda: course.instructor_id
+
+    response = client.get("/courses/1")
+
+    assert response.status_code == 200
+    assert response.json()["title"] == "Draft course"
+
+
+def test_get_course_returns_unpublished_to_admin(
+    client, mock_service, mock_user_lookup
+):
+    get_detail, _ = mock_service
+    get_detail.return_value = CourseFactory(published_at=None, title="Draft course")
+
+    admin = UserFactory(name="Root", role=UserRole.ADMIN)
+    mock_user_lookup.return_value = admin
+    app.dependency_overrides[optional_current_user_id] = lambda: admin.id
+
+    response = client.get("/courses/1")
+
+    assert response.status_code == 200
+    assert response.json()["title"] == "Draft course"
+
+
+def test_get_course_still_returns_published_to_anonymous(
+    client, mock_service, mock_user_lookup
+):
+    get_detail, _ = mock_service
+    get_detail.return_value = CourseFactory(title="Python 101")
+
+    response = client.get("/courses/1")
+
+    assert response.status_code == 200
+    assert response.json()["title"] == "Python 101"
