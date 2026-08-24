@@ -274,11 +274,19 @@ async def get_courses_list(
     viewer_id: int | None = None,
     instructor_id: int | None = None,
 ) -> CourseListResponse:
-    courses, total = await get_all_courses(
-        session, page, page_size, filters, instructor_id=instructor_id
+    is_admin = await is_admin_user(session, viewer_id)
+    include_unpublished = is_admin or (
+        instructor_id is not None and viewer_id == instructor_id
     )
 
-    is_admin = await is_admin_user(session, viewer_id)
+    courses, total = await get_all_courses(
+        session,
+        page,
+        page_size,
+        filters,
+        instructor_id=instructor_id,
+        include_unpublished=include_unpublished,
+    )
 
     items = []
     for course in courses:
