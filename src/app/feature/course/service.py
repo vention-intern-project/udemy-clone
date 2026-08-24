@@ -42,12 +42,12 @@ async def is_admin_user(session: AsyncSession, viewer_id: int | None) -> bool:
     return viewer is not None and viewer.role == UserRole.ADMIN
 
 
-async def can_view_unpublished_lessons(
+async def can_view_drafts(
     session: AsyncSession,
     viewer_id: int | None,
     instructor_id: int | None,
 ) -> bool:
-    """Only the owning instructor and admins may see draft lessons."""
+    """Only the owning instructor and admins may see drafts."""
     if viewer_id is None:
         return False
 

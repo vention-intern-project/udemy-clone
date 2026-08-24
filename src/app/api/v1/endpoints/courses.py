@@ -25,7 +25,7 @@ from app.feature.course.schemas import (
     LessonResponse,
 )
 from app.feature.course.service import (
-    can_view_unpublished_lessons,
+    can_view_drafts,
     create_course,
     create_lesson,
     deleting_course,
@@ -135,9 +135,7 @@ async def list_lessons(
         course_id=course_id,
         page=page,
         size=size,
-        include_unpublished=await can_view_unpublished_lessons(
-            session, user_id, instructor_id
-        ),
+        include_unpublished=await can_view_drafts(session, user_id, instructor_id),
     )
 
     if response.items:
@@ -201,7 +199,7 @@ async def get_course(
 
     response = CourseDetailResponse.model_validate(course)
 
-    if not await can_view_unpublished_lessons(session, user_id, course.instructor_id):
+    if not await can_view_drafts(session, user_id, course.instructor_id):
         response.lessons = [
             lesson for lesson in response.lessons if lesson.is_published
         ]
