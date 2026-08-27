@@ -39,7 +39,7 @@ class CourseFactory(factory.Factory):
     description = "Intro to Python"
     price = Decimal("9.99")
     currency = "USD"
-    published_at = None
+    published_at = datetime(2026, 1, 1, tzinfo=UTC)
     created_at = datetime(2026, 1, 1, tzinfo=UTC)
     updated_at = datetime(2026, 1, 1, tzinfo=UTC)
 

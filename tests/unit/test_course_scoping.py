@@ -1,4 +1,5 @@
 import asyncio
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 from sqlalchemy.dialects import postgresql
@@ -7,6 +8,7 @@ from app.feature.course import service as course_service
 from app.feature.course.repository import get_all_courses
 from app.feature.course.schemas import CourseFilters
 from app.feature.course.service import get_courses_list
+from app.feature.user.models import UserRole
 
 
 def run(coro):
@@ -97,3 +99,93 @@ def test_service_forwards_instructor_id_to_repository(monkeypatch):
     )
 
     assert get_all_mock.await_args.kwargs["instructor_id"] == 7
+
+
+def test_public_listing_excludes_unpublished_courses():
+    session = make_session()
+
+    run(get_all_courses(session, page=1, page_size=20, filters=CourseFilters()))
+
+    assert "courses.published_at IS NOT NULL" in page_sql(session)
+
+
+def test_published_filter_reaches_the_count_query():
+    """A filtered page with an unfiltered total would report phantom results."""
+    session = make_session()
+
+    run(get_all_courses(session, page=1, page_size=20, filters=CourseFilters()))
+
+    assert "courses.published_at IS NOT NULL" in count_sql(session)
+
+
+def test_include_unpublished_drops_the_published_filter():
+    session = make_session()
+
+    run(
+        get_all_courses(
+            session,
+            page=1,
+            page_size=20,
+            filters=CourseFilters(),
+            include_unpublished=True,
+        )
+    )
+
+    assert "published_at IS NOT NULL" not in page_sql(session)
+
+
+def test_service_hides_unpublished_courses_from_anonymous(monkeypatch):
+    get_all_mock = AsyncMock(return_value=([], 0))
+    monkeypatch.setattr(course_service, "get_all_courses", get_all_mock)
+    monkeypatch.setattr(course_service, "get_user_by_id", AsyncMock(return_value=None))
+
+    run(
+        get_courses_list(
+            AsyncMock(),
+            page=1,
+            page_size=20,
+            filters=CourseFilters(),
+            viewer_id=None,
+        )
+    )
+
+    assert get_all_mock.await_args.kwargs["include_unpublished"] is False
+
+
+def test_service_shows_own_drafts_to_instructor(monkeypatch):
+    """/courses/my must keep returning the caller's unpublished courses."""
+    get_all_mock = AsyncMock(return_value=([], 0))
+    monkeypatch.setattr(course_service, "get_all_courses", get_all_mock)
+    monkeypatch.setattr(course_service, "get_user_by_id", AsyncMock(return_value=None))
+
+    run(
+        get_courses_list(
+            AsyncMock(),
+            page=1,
+            page_size=20,
+            filters=CourseFilters(),
+            viewer_id=7,
+            instructor_id=7,
+        )
+    )
+
+    assert get_all_mock.await_args.kwargs["include_unpublished"] is True
+
+
+def test_service_shows_unpublished_courses_to_admin(monkeypatch):
+    admin = SimpleNamespace(id=9, role=UserRole.ADMIN)
+    get_all_mock = AsyncMock(return_value=([], 0))
+    monkeypatch.setattr(course_service, "get_all_courses", get_all_mock)
+    monkeypatch.setattr(course_service, "get_user_by_id", AsyncMock(return_value=admin))
+
+    run(
+        get_courses_list(
+            AsyncMock(),
+            page=1,
+            page_size=20,
+            filters=CourseFilters(),
+            viewer_id=9,
+        )
+    )
+
+    assert get_all_mock.await_args.kwargs["include_unpublished"] is True
