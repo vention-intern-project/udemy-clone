@@ -16,9 +16,53 @@ services:
       - redis
     volumes:
       - ./src:/app/src
+      - ./media:/app/media
     ports:
       - "8000:8000"
     command: uv run uvicorn app.main:app --app-dir src --host 0.0.0.0 --port 8000 --reload
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: udemy_clone_worker
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PYTHONPATH=/app/src
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./src:/app/src
+      - ./media:/app/media
+    command: uv run celery -A app.core.celery_con:celery_app worker -Q celery --loglevel=info
+
+  worker-subtitles:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: udemy_clone_worker_subtitles
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PYTHONPATH=/app/src
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./src:/app/src
+      - ./media:/app/media
+      - hf_cache:/root/.cache/huggingface
+    command: uv run celery -A app.core.celery_con:celery_app worker -Q subtitles --concurrency=1 --loglevel=info
 
   db:
     image: postgres:16-alpine
@@ -43,3 +87,4 @@ services:
 
 volumes:
   postgres_data:
+  hf_cache:
