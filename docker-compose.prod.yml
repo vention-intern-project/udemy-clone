@@ -1,0 +1,100 @@
+services:
+  api:
+    image: ghcr.io/vention-intern-project/udemy-clone:${IMAGE_TAG:-latest}
+    container_name: udemy_clone_api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      REDIS_HOST: redis
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    volumes:
+      - media_data:/app/media
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/docs')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+
+  db:
+    image: postgres:16-alpine
+    container_name: udemy_clone_db
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: udemy_clone_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  worker:
+    image: ghcr.io/vention-intern-project/udemy-clone:${IMAGE_TAG:-latest}
+    container_name: udemy_clone_worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      REDIS_HOST: redis
+      PYTHONPATH: /app/src
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    volumes:
+      - media_data:/app/media
+    command: uv run celery -A app.core.celery_con:celery_app worker -Q celery --concurrency=1 --loglevel=info
+
+  worker-subtitles:
+    image: ghcr.io/vention-intern-project/udemy-clone:${IMAGE_TAG:-latest}
+    container_name: udemy_clone_worker_subtitles
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      REDIS_HOST: redis
+      PYTHONPATH: /app/src
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    volumes:
+      - media_data:/app/media
+      - hf_cache:/root/.cache/huggingface
+    command: uv run celery -A app.core.celery_con:celery_app worker -Q subtitles --concurrency=1 --loglevel=info
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: udemy_clone_caddy
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - /srv/udemy-frontend/dist:/srv/udemy-frontend/dist:ro
+
+volumes:
+  postgres_data:
+  caddy_data:
+  media_data:
+  redis_data:
+  hf_cache:
