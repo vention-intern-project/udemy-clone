@@ -125,3 +125,23 @@ async def process_lesson_delete(course_id: int, lesson_id: int) -> None:
         lesson_path.unlink()
 
     await remove_lesson_from_index(course_id, lesson_id)
+
+
+async def sync_lesson_knowledge(
+    course_id: int,
+    lesson_id: int,
+    lesson_title: str,
+    course_title: str,
+    description: str | None,
+    is_published: bool,
+    has_file: bool,
+) -> None:
+    if has_file:
+        return
+
+    if is_published and description:
+        await ingest_lesson_text(
+            course_id, lesson_id, lesson_title, course_title, description
+        )
+    else:
+        await process_lesson_delete(course_id, lesson_id)
