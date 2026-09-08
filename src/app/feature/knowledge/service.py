@@ -99,26 +99,6 @@ async def _update_general_index_count(course_id: int, course_title: str) -> None
     )
 
 
-async def process_lesson_update(
-    course_id: int,
-    lesson_id: int,
-    lesson_title: str,
-    lesson_type: str,
-    file_url: str | None,
-    course_title: str,
-    description: str | None = None,
-) -> None:
-    await process_lesson_upload(
-        course_id,
-        lesson_id,
-        lesson_title,
-        lesson_type,
-        file_url,
-        course_title,
-        description,
-    )
-
-
 async def process_lesson_delete(course_id: int, lesson_id: int) -> None:
     lesson_path = get_lesson_path(course_id, lesson_id)
     if lesson_path.exists():
