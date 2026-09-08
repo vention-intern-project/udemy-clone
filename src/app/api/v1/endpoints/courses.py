@@ -183,17 +183,16 @@ async def creating_lesson(
         )
 
     course = await get_course_by_id(session, course_id)
-    if course is not None:
-        background_tasks.add_task(
-            sync_lesson_knowledge,
-            course_id=course_id,
-            lesson_id=lesson.id,
-            lesson_title=lesson.title,
-            course_title=course.title,
-            description=lesson.description,
-            is_published=lesson.is_published,
-            has_file=False,
-        )
+    background_tasks.add_task(
+        sync_lesson_knowledge,
+        course_id=course_id,
+        lesson_id=lesson.id,
+        lesson_title=lesson.title,
+        course_title=course.title,
+        description=lesson.description,
+        is_published=lesson.is_published,
+        has_file=False,
+    )
 
     return lesson
 

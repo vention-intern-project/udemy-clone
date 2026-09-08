@@ -215,6 +215,7 @@ async def upload_file(
         file_url=None if lesson.lesson_type == LessonType.VIDEO else file_url,
         course_title=lesson.course.title,
         description=lesson.description,
+        is_published=lesson.is_published,
     )
 
     return LessonUploadResponse(

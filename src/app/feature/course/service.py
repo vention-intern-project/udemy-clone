@@ -259,7 +259,7 @@ async def deleting_lesson(
     for asset in lesson.assets:
         delete_file(asset.storage_key)
 
-    await process_lesson_delete(lesson.course_id, lesson.id)
+    await process_lesson_delete(lesson.course_id, lesson.id, lesson.course.title)
 
     await delete_lesson(session, lesson)
 

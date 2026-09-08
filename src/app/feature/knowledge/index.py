@@ -111,6 +111,9 @@ async def update_course_index(
     description: str,
 ) -> None:
     path = get_course_index_path(course_id)
+    # ponytail: unlocked read-modify-write; a Celery transcript ingest racing
+    # an API-side ingest can drop a row. Add a filelock here if concurrent
+    # course edits become real.
     content = await read_index(path)
 
     if not content:

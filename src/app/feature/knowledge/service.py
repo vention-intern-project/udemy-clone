@@ -63,8 +63,12 @@ async def process_lesson_upload(
     file_url: str | None,
     course_title: str,
     description: str | None = None,
+    is_published: bool = True,
 ) -> None:
     ensure_directories(course_id)
+
+    if not is_published:
+        return
 
     if not file_url:
         if description:
@@ -99,12 +103,15 @@ async def _update_general_index_count(course_id: int, course_title: str) -> None
     )
 
 
-async def process_lesson_delete(course_id: int, lesson_id: int) -> None:
+async def process_lesson_delete(
+    course_id: int, lesson_id: int, course_title: str
+) -> None:
     lesson_path = get_lesson_path(course_id, lesson_id)
     if lesson_path.exists():
         lesson_path.unlink()
 
     await remove_lesson_from_index(course_id, lesson_id)
+    await _update_general_index_count(course_id, course_title)
 
 
 async def sync_lesson_knowledge(
@@ -116,12 +123,16 @@ async def sync_lesson_knowledge(
     is_published: bool,
     has_file: bool,
 ) -> None:
+    if not is_published:
+        await process_lesson_delete(course_id, lesson_id, course_title)
+        return
+
     if has_file:
         return
 
-    if is_published and description:
+    if description:
         await ingest_lesson_text(
             course_id, lesson_id, lesson_title, course_title, description
         )
     else:
-        await process_lesson_delete(course_id, lesson_id)
+        await process_lesson_delete(course_id, lesson_id, course_title)

@@ -70,19 +70,7 @@ def test_creating_lesson_schedules_knowledge_sync(client, monkeypatch):
     }
 
 
-@pytest.fixture
-def lesson_client():
-    async def override_get_db():
-        yield AsyncMock()
-
-    app.dependency_overrides[get_db] = override_get_db
-    app.dependency_overrides[get_current_user_id] = lambda: 1
-    with TestClient(app) as test_client:
-        yield test_client
-    app.dependency_overrides.clear()
-
-
-def test_patching_fileless_lesson_schedules_sync(lesson_client, monkeypatch):
+def test_patching_fileless_lesson_schedules_sync(client, monkeypatch):
     course = CourseFactory(id=3, title="Python 101")
     lesson = LessonFactory(
         id=9,
@@ -103,9 +91,7 @@ def test_patching_fileless_lesson_schedules_sync(lesson_client, monkeypatch):
 
     monkeypatch.setattr(lessons, "sync_lesson_knowledge", fake_sync)
 
-    response = lesson_client.patch(
-        "/lessons/9", json={"description": "Chapters 1 through 6."}
-    )
+    response = client.patch("/lessons/9", json={"description": "Chapters 1 through 6."})
 
     assert response.status_code == 200
     assert captured["has_file"] is False
@@ -116,7 +102,7 @@ def test_patching_fileless_lesson_schedules_sync(lesson_client, monkeypatch):
     assert captured["is_published"] is True
 
 
-def test_patching_lesson_with_asset_passes_has_file_true(lesson_client, monkeypatch):
+def test_patching_lesson_with_asset_passes_has_file_true(client, monkeypatch):
     course = CourseFactory(id=3, title="Python 101")
     lesson = LessonFactory(
         id=9,
@@ -137,7 +123,7 @@ def test_patching_lesson_with_asset_passes_has_file_true(lesson_client, monkeypa
 
     monkeypatch.setattr(lessons, "sync_lesson_knowledge", fake_sync)
 
-    response = lesson_client.patch(
+    response = client.patch(
         "/lessons/9", json={"description": "edited three weeks later"}
     )
 

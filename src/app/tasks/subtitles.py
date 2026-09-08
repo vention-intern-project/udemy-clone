@@ -45,7 +45,6 @@ def generate_subtitles(job_id: int):
             # (see below) so the pooled connection isn't held across the LLM call
             lesson = asset.lesson
             ingest_args = (
-                job_id,
                 lesson.course_id,
                 lesson.id,
                 lesson.title,
@@ -63,9 +62,7 @@ def generate_subtitles(job_id: int):
     # normal order. Add a timestamp guard in _persist_lesson if a short video
     # ever loses its transcript.
     if ingest_args is not None:
-        job_id, course_id, lesson_id, lesson_title, course_title, transcript_path = (
-            ingest_args
-        )
+        course_id, lesson_id, lesson_title, course_title, transcript_path = ingest_args
         try:
             transcript = (get_media_root() / transcript_path).read_text(
                 encoding="utf-8"

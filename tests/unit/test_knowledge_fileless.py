@@ -59,7 +59,7 @@ async def test_lesson_with_file_is_left_alone(monkeypatch, tmp_path):
     assert get_lesson_path(1, 5).read_text() == before
 
 
-async def test_unpublished_lesson_with_file_is_not_removed(monkeypatch, tmp_path):
+async def test_unpublished_lesson_with_file_is_removed(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "MEDIA_ROOT", str(tmp_path))
     monkeypatch.setattr(service, "generate_metadata", fake_metadata)
 
@@ -81,8 +81,13 @@ async def test_unpublished_lesson_with_file_is_not_removed(monkeypatch, tmp_path
         has_file=True,
     )
 
-    assert get_lesson_path(1, 5).exists()
-    assert "the real whisper transcript" in get_lesson_path(1, 5).read_text()
+    assert not get_lesson_path(1, 5).exists()
+    rows = [
+        line
+        for line in get_course_index_path(1).read_text().splitlines()
+        if line.startswith("| 5 |")
+    ]
+    assert rows == []
 
 
 async def test_unpublished_fileless_lesson_is_removed(monkeypatch, tmp_path):
@@ -117,6 +122,16 @@ async def test_unpublished_fileless_lesson_is_removed(monkeypatch, tmp_path):
         if line.startswith("| 5 |")
     ]
     assert rows == []
+
+    from app.feature.knowledge.index import get_general_index_path
+
+    general_rows = [
+        line
+        for line in get_general_index_path().read_text().splitlines()
+        if line.startswith("| 1 |")
+    ]
+    assert len(general_rows) == 1
+    assert general_rows[0].split("|")[4].strip() == "0"
 
 
 async def test_cleared_description_removes_lesson(monkeypatch, tmp_path):
