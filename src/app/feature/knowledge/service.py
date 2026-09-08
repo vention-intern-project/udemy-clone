@@ -44,6 +44,17 @@ async def _persist_lesson(
     await _update_general_index_count(course_id, course_title)
 
 
+async def ingest_lesson_text(
+    course_id: int,
+    lesson_id: int,
+    lesson_title: str,
+    course_title: str,
+    content: str,
+) -> None:
+    ensure_directories(course_id)
+    await _persist_lesson(course_id, lesson_id, lesson_title, course_title, content)
+
+
 async def process_lesson_upload(
     course_id: int,
     lesson_id: int,
