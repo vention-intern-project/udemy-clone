@@ -48,3 +48,20 @@ async def test_reingest_replaces_index_row(monkeypatch, tmp_path):
     assert len(rows) == 1
     assert "the real whisper transcript" in get_lesson_path(1, 7).read_text()
     assert "placeholder description" not in get_lesson_path(1, 7).read_text()
+
+
+async def test_video_upload_uses_description_not_extractor(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "MEDIA_ROOT", str(tmp_path))
+    monkeypatch.setattr(service, "generate_metadata", fake_metadata)
+
+    await service.process_lesson_upload(
+        course_id=2,
+        lesson_id=9,
+        lesson_title="Recorded Talk",
+        lesson_type="video",
+        file_url=None,
+        course_title="Public Speaking",
+        description="A recorded conference talk.",
+    )
+
+    assert "A recorded conference talk." in get_lesson_path(2, 9).read_text()

@@ -200,7 +200,7 @@ async def upload_file(
         lesson_id=lesson_id,
         lesson_title=lesson.title,
         lesson_type=lesson_type,
-        file_url=file_url,
+        file_url=None if lesson.lesson_type == LessonType.VIDEO else file_url,
         course_title=lesson.course.title,
         description=lesson.description,
     )
