@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -47,6 +47,7 @@ from app.feature.enrollment.service import (
     get_course_enrollments,
     incomplete_lesson,
 )
+from app.feature.knowledge.service import sync_lesson_knowledge
 from app.feature.review.schemas import (
     ReviewCreate,
     ReviewListResponse,
@@ -158,6 +159,7 @@ async def list_lessons(
 async def creating_lesson(
     course_id: int,
     payload: LessonCreateRequest,
+    background_tasks: BackgroundTasks,
     user_id: int = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_db),
 ):
@@ -178,6 +180,19 @@ async def creating_lesson(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lesson not found",
+        )
+
+    course = await get_course_by_id(session, course_id)
+    if course is not None:
+        background_tasks.add_task(
+            sync_lesson_knowledge,
+            course_id=course_id,
+            lesson_id=lesson.id,
+            lesson_title=lesson.title,
+            course_title=course.title,
+            description=lesson.description,
+            is_published=lesson.is_published,
+            has_file=False,
         )
 
     return lesson
