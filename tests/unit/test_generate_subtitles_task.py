@@ -97,3 +97,80 @@ def test_generate_subtitles_noop_when_job_type_mismatched(monkeypatch, tmp_path)
     subtitles.generate_subtitles(1)
 
     session.commit.assert_not_called()
+
+
+def test_generate_subtitles_ingests_transcript(monkeypatch, tmp_path):
+    asset = LessonAssetFactory(id=1, storage_key="lessons/video/abc.mp4")
+    job = ProcessingJobFactory(id=1, asset=asset, job_type="subtitle", status="queued")
+
+    (tmp_path / "lessons" / "video").mkdir(parents=True)
+    (tmp_path / "lessons" / "video" / "abc.mp4").write_bytes(b"content")
+    (tmp_path / "lessons" / "video" / "abc.txt").write_text("spoken words here")
+
+    session = make_session(job)
+    monkeypatch.setattr(subtitles, "SessionLocal", FakeSessionLocal(session))
+    monkeypatch.setattr(subtitles, "get_media_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        subtitles,
+        "SubtitleService",
+        lambda: SimpleNamespace(
+            generate=lambda *a, **kw: SimpleNamespace(
+                vtt_path="lessons/video/abc.vtt",
+                transcript_path="lessons/video/abc.txt",
+            )
+        ),
+    )
+
+    captured = {}
+
+    async def fake_ingest(course_id, lesson_id, lesson_title, course_title, content):
+        captured.update(
+            course_id=course_id,
+            lesson_id=lesson_id,
+            lesson_title=lesson_title,
+            course_title=course_title,
+            content=content,
+        )
+
+    monkeypatch.setattr(subtitles, "ingest_lesson_text", fake_ingest)
+
+    subtitles.generate_subtitles(1)
+
+    assert job.status == "completed"
+    assert captured["content"] == "spoken words here"
+    assert captured["lesson_id"] == asset.lesson.id
+    assert captured["course_id"] == asset.lesson.course_id
+    assert captured["course_title"] == asset.lesson.course.title
+
+
+def test_generate_subtitles_survives_ingest_failure(monkeypatch, tmp_path):
+    asset = LessonAssetFactory(id=1, storage_key="lessons/video/abc.mp4")
+    job = ProcessingJobFactory(id=1, asset=asset, job_type="subtitle", status="queued")
+
+    (tmp_path / "lessons" / "video").mkdir(parents=True)
+    (tmp_path / "lessons" / "video" / "abc.mp4").write_bytes(b"content")
+    (tmp_path / "lessons" / "video" / "abc.txt").write_text("spoken words here")
+
+    session = make_session(job)
+    monkeypatch.setattr(subtitles, "SessionLocal", FakeSessionLocal(session))
+    monkeypatch.setattr(subtitles, "get_media_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        subtitles,
+        "SubtitleService",
+        lambda: SimpleNamespace(
+            generate=lambda *a, **kw: SimpleNamespace(
+                vtt_path="lessons/video/abc.vtt",
+                transcript_path="lessons/video/abc.txt",
+            )
+        ),
+    )
+
+    async def boom(*a, **kw):
+        raise RuntimeError("gemini rate limit")
+
+    monkeypatch.setattr(subtitles, "ingest_lesson_text", boom)
+
+    subtitles.generate_subtitles(1)
+
+    assert job.status == "completed"
+    assert job.failure_reason is None

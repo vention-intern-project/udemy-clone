@@ -27,7 +27,7 @@ from app.feature.course.service import (
     upload_lesson_file,
 )
 from app.feature.enrollment.repository import get_active_enrollment_by_course
-from app.feature.knowledge.service import process_lesson_upload
+from app.feature.knowledge.service import process_lesson_upload, sync_lesson_knowledge
 from app.tasks.subtitles import generate_subtitles
 from app.tasks.uploads import finalize_lesson_upload
 
@@ -68,6 +68,7 @@ async def get_lesson(
 async def patch_lesson(
     lesson_id: int,
     payload: LessonUpdateRequest,
+    background_tasks: BackgroundTasks,
     user_id: int = Depends(get_current_user_id),
     session: AsyncSession = Depends(get_db),
 ):
@@ -84,6 +85,17 @@ async def patch_lesson(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lesson not found",
         )
+
+    background_tasks.add_task(
+        sync_lesson_knowledge,
+        course_id=lesson.course_id,
+        lesson_id=lesson.id,
+        lesson_title=lesson.title,
+        course_title=lesson.course.title,
+        description=lesson.description,
+        is_published=lesson.is_published,
+        has_file=lesson.latest_asset is not None,
+    )
 
     return lesson
 
@@ -200,9 +212,10 @@ async def upload_file(
         lesson_id=lesson_id,
         lesson_title=lesson.title,
         lesson_type=lesson_type,
-        file_url=file_url,
+        file_url=None if lesson.lesson_type == LessonType.VIDEO else file_url,
         course_title=lesson.course.title,
         description=lesson.description,
+        is_published=lesson.is_published,
     )
 
     return LessonUploadResponse(
