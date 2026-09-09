@@ -190,7 +190,7 @@ async def upload_file(
             content_type=file.content_type or "application/octet-stream",
             size=len(file_bytes),
         )
-        if lesson.lesson_type == LessonType.VIDEO:
+        if subtitle_job is not None:
             generate_subtitles.delay(subtitle_job.id)
         finalize_lesson_upload.delay(finalize_job.id)
     except PermissionError as e:

@@ -4,7 +4,13 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.storage import delete_file
-from app.feature.course.models import Course, Lesson, LessonAsset, ProcessingJob
+from app.feature.course.models import (
+    Course,
+    Lesson,
+    LessonAsset,
+    LessonType,
+    ProcessingJob,
+)
 from app.feature.course.repository import (
     delete_course,
     delete_lesson,
@@ -166,7 +172,7 @@ async def upload_lesson_file(
     checksum: str,
     content_type: str,
     size: int,
-) -> tuple[LessonAsset, ProcessingJob, ProcessingJob]:
+) -> tuple[LessonAsset, ProcessingJob | None, ProcessingJob]:
     lesson = await get_lesson_by_id(session, lesson_id)
 
     if lesson is None:
@@ -192,13 +198,19 @@ async def upload_lesson_file(
     session.add(asset)
     await session.flush()
 
-    subtitle_job = ProcessingJob(
-        asset_id=asset.id, job_type="subtitle", status="queued"
-    )
+    # only video assets have a worker that consumes subtitle jobs; creating the
+    # row for anything else leaves it queued forever
+    subtitle_job = None
+    if lesson.lesson_type == LessonType.VIDEO:
+        subtitle_job = ProcessingJob(
+            asset_id=asset.id, job_type="subtitle", status="queued"
+        )
+        session.add(subtitle_job)
+
     finalize_job = ProcessingJob(
         asset_id=asset.id, job_type="finalize", status="queued"
     )
-    session.add_all([subtitle_job, finalize_job])
+    session.add(finalize_job)
 
     await session.commit()
     await session.refresh(asset)
